@@ -61,16 +61,18 @@ def evaluate_agent(
     """Run `num_episodes` episodes and aggregate win rate / length / failures.
 
     Returns:
-        A dict with `games_played`, `wins`, `failures`, `win_rate`, and
-        `avg_episode_length`.
+        A dict with `games_played`, `wins`, `failures`, `win_rate`,
+        `avg_episode_length`, and `avg_reward`.
     """
     wins = 0
     failures = 0
     total_steps = 0
+    total_reward = 0.0
 
     for _ in range(num_episodes):
         result = run_episode(env, action_fn, on_episode_start)
         total_steps += result["steps"]
+        total_reward += result["total_reward"]
         if result["won"]:
             wins += 1
         else:
@@ -82,4 +84,5 @@ def evaluate_agent(
         "failures": failures,
         "win_rate": wins / num_episodes,
         "avg_episode_length": total_steps / num_episodes,
+        "avg_reward": total_reward / num_episodes,
     }

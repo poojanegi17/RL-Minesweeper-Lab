@@ -21,6 +21,9 @@ __pycache__/
 .venv/
 venv/
 
+# RL experiment output
+rl/results/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
