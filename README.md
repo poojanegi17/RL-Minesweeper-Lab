@@ -26,12 +26,13 @@ A portfolio project exploring reinforcement learning and classical AI approaches
 - CSP (Constraint Satisfaction Problem) solver
 - Tabular Q-Learning agent
 - Deep Q-Network (DQN) agent with CNN Q-network, experience replay, target network, and a multi-channel state encoding
+- Proximal Policy Optimization (PPO) agent with a shared CNN actor-critic, GAE, and a clipped surrogate objective, implemented from scratch
 - Evaluation framework
 - Unit tests
 
 **Planned**
 
-- PPO/A2C
+- A2C
 - Backend API
 - Interactive replay visualization
 - Live agent demonstrations
@@ -61,11 +62,14 @@ RL Minesweeper Lab/
     │   ├── random_agent.py      # Random baseline
     │   ├── csp_solver.py        # CSP logical solver
     │   ├── q_learning_agent.py  # Tabular Q-Learning agent
-    │   └── dqn_agent.py         # Double DQN agent + checkpointing + LR scheduling
+    │   ├── dqn_agent.py         # Double DQN agent + checkpointing + LR scheduling
+    │   └── ppo_agent.py         # PPO agent (rollout collection, GAE, clipped-surrogate update)
     ├── models/
-    │   └── dqn_network.py       # CNN Q-network (configurable size) + state encoding
+    │   ├── dqn_network.py       # CNN Q-network (configurable size) + state encoding
+    │   └── ppo_network.py       # Shared-CNN actor-critic network
     ├── training/
-    │   ├── replay_buffer.py     # Experience replay buffer
+    │   ├── replay_buffer.py     # Experience replay buffer (off-policy, DQN)
+    │   ├── rollout_buffer.py    # On-policy rollout buffer + GAE (PPO)
     │   └── history_export.py    # Training history -> JSON/CSV export
     ├── evaluation/
     │   ├── evaluate_agents.py   # Agent comparison script (uses DQN's best_model.pt)
@@ -91,9 +95,11 @@ Tabular Q-Learning Agent
         ↓
 DQN Agent (CNN + Experience Replay + Target Network)
         ↓
+PPO Agent (Shared CNN Actor-Critic + GAE + Clipped Surrogate Objective)
+        ↓
 Evaluation Framework
         ↓
-Future RL Agents (PPO/A2C)
+Future RL Agents (A2C)
 ```
 
 - **Minesweeper Engine** (`environment/minesweeper.py`) — Board generation, mine placement, cell reveal/flag logic, and win/loss detection, independent of any RL framework.
@@ -102,8 +108,9 @@ Future RL Agents (PPO/A2C)
 - **CSP Solver** (`agents/csp_solver.py`) — Builds constraints from revealed numbers ("exactly N of these hidden neighbors are mines"), applies logical deduction to find guaranteed-safe cells and guaranteed mines, and falls back to lowest-probability guessing when no deduction is possible.
 - **Tabular Q-Learning Agent** (`agents/q_learning_agent.py`) — Learns a Q-value for each (board pattern, action) pair from experience via epsilon-greedy exploration and the Bellman update, with no built-in Minesweeper logic. Effective on small boards, but a flattened board is used directly as the state key, so it doesn't generalize across the huge state space of larger boards.
 - **DQN Agent** (`agents/dqn_agent.py`, `models/dqn_network.py`, `training/replay_buffer.py`) — Replaces the Q-table with a small CNN (configurable capacity) that maps an 11-channel board encoding to one Q-value per cell, trained as Double DQN with experience replay, a target network, best-checkpoint selection, and an optional learning-rate decay schedule. Generalizes across similar board patterns instead of memorizing exact ones — see [Experiments](#experiments) below for what changed and why.
+- **PPO Agent** (`agents/ppo_agent.py`, `models/ppo_network.py`, `training/rollout_buffer.py`) — Replaces DQN's learned Q-values with a directly-learned policy: a shared CNN feeds an actor head (one action logit per cell) and a critic head (a scalar state value), trained on-policy with Generalized Advantage Estimation and a clipped surrogate objective instead of a replay buffer and target network. See [PPO](#ppo-proximal-policy-optimization) below for why this is a different approach to the same generalization problem DQN was built to solve, and how it compares in practice.
 - **Evaluation Framework** (`evaluation/`) — Runs agents over many episodes and reports win rate, average episode length, and failure counts on identical board configurations, so agents can be compared fairly.
-- **Future RL Agents** — PPO/A2C will plug into the same environment and evaluation framework once implemented.
+- **Future RL Agents** — A2C will plug into the same environment and evaluation framework once implemented.
 
 ## Benchmark Results
 
@@ -113,10 +120,11 @@ Future RL Agents (PPO/A2C)
 | CSP Solver | Logical Solver | ~45.5% |
 | Q-Learning Agent | Tabular RL | ~0.5%* |
 | DQN Agent | Deep RL (Double DQN, CNN) | ~1.0%* |
+| PPO Agent | Deep RL (Actor-Critic, CNN) | ~0.0%* |
 
-*Measured on a 5x5 board with 5 mines over 200 episodes (`rl/evaluation/evaluate_agents.py`), with Q-Learning trained for 20,000 episodes and DQN trained for 6,000 episodes first, evaluated using its best checkpoint (see below). These are current benchmark results and will change as training budgets and algorithms improve.*
+*Measured on a 5x5 board with 5 mines over 200 episodes (`rl/evaluation/evaluate_agents.py`), with Q-Learning trained for 20,000 episodes and DQN and PPO each trained for 6,000 episodes first, DQN evaluated using its best checkpoint (see below). These are current benchmark results and will change as training budgets and algorithms improve.*
 
-\* *Both learned agents are still far behind CSP on this board — see [Experiments](#experiments) for why, and for evidence (on a smaller board, and with a longer DQN training budget) that both are learning correctly rather than being broken.*
+\* *All three learned agents are still far behind CSP on this board — see [Experiments](#experiments) and [PPO](#ppo-proximal-policy-optimization) for why, and for evidence (on a smaller board, and with a longer DQN training budget) that Q-Learning and DQN are learning correctly rather than being broken. PPO's implementation is verified correct by its test suite, but this benchmark alone doesn't yet distinguish "PPO needs more training/tuning" from a deeper limitation — see the PPO section's limitations discussion.*
 
 ## Experiments
 
@@ -185,6 +193,67 @@ Checkpoint selection and LR decay address different failure modes — checkpoint
 **Conclusion.** Checkpointing and LR decay solve different problems and both remain worth keeping, even though combining them didn't produce a higher deployed win rate than either alone on this particular run. LR decay is the more fundamental fix: it directly addresses *why* loss diverges, and Experiment E confirms that effect holds even alongside checkpointing — its loss curve is the tightest of all five runs. Checkpoint selection doesn't make training more stable and can't fix a policy that was never good to begin with, but it's a strictly-better deployment strategy at essentially no training cost: it never deploys worse than the final in-memory weights, and in Experiment E it still recovered a 2x win-rate improvement over those raw final weights even in an already-stabilized run. The recommended configuration is therefore both together — LR decay to fix the training dynamics, plus best-checkpoint deployment as cheap insurance against whatever noise remains.
 
 The improvement here is genuinely small, and Experiment E's 2.0% deployed win rate shouldn't be read as "combining doesn't help." It's a symptom of `checkpoint_eval_episodes=50` being too noisy a sample to reliably rank checkpoints once loss — and win rate — stop varying by orders of magnitude between them, a limitation already flagged after Experiment B and sharpened by Experiment E: the noisier the underlying signal relative to the true gap between checkpoints, the less trustworthy a small evaluation sample becomes. A larger per-checkpoint evaluation budget (at the cost of more training time spent on evaluation rather than learning) is the direct fix, and is the natural next step before drawing a stronger conclusion about the combined configuration's true win rate. All five configurations remain far behind CSP's ~45.5% on this board; closing that gap will need more than these stabilization fixes alone.
+
+## PPO (Proximal Policy Optimization)
+
+**Motivation.** The DQN investigation above closed with "remaining limitations appear related to exploration, sparse rewards, and value-based learning difficulty" — LR decay and checkpoint selection fixed *how* DQN trains (stability), but neither touches *what* DQN is fundamentally doing: learning Q(s, a) and deriving a policy from it indirectly via `argmax`. PPO is the next milestone specifically because it swaps that out for learning a policy directly, which is a different enough approach to the same generalization problem that it's worth testing on its own terms rather than as another DQN tuning pass. Per the earlier instruction guiding this work: **PPO is not assumed better going in** — see [Benchmark results](#ppo-benchmark-results) below rather than this section for whether it actually is.
+
+**Difference from Q-learning / DQN.** Both `QLearningAgent` and `DQNAgent` are value-based and off-policy: they estimate Q(s, a) for every action and act by taking whichever one currently looks best, and because a Q-value's correctness doesn't depend on which policy generated the data used to learn it, both can (and DQN does) train on a buffer of old transitions collected under earlier, different policies. `PPOAgent` is policy-based and on-policy: `PPONetwork`'s actor head directly outputs a probability distribution over actions, with no Q-value or `argmax` involved, and because PPO's update is a correction for how far the *current* policy has drifted from the one that collected the data, it can only train on data its own current-ish policy just generated — old rollouts are discarded after one update rather than replayed. This is why `PPOAgent` has a `RolloutBuffer` (cleared every update) instead of DQN's fixed-capacity `ReplayBuffer`, and has no target network: there's no bootstrapped Q-value whose target needs to be held still.
+
+**Actor-Critic architecture.** `PPONetwork` (`models/ppo_network.py`) reuses the same 11-channel one-hot board encoding as `DQNNetwork` (`encode_observation` — hidden mask, revealed mask, one-hot revealed count 0-8; see [Experiments](#experiments) for why this representation beat a single scalar channel) and a similar convolutional trunk, but where `DQNNetwork` ends in one head (a Q-value per cell), `PPONetwork` ends in two, branching off a shared fully-connected trunk:
+
+```
+Observation (11, rows, cols)
+        ↓
+   Conv2d + ReLU
+   Conv2d + ReLU
+        ↓
+     Flatten
+        ↓
+  Linear + ReLU  (shared trunk)
+        ↓
+   ┌────┴────┐
+   ↓         ↓
+ Actor     Critic
+Linear     Linear
+(rows*cols) (1)
+   ↓         ↓
+Action    Value
+logits   estimate
+ V(s)
+```
+
+The actor's logits are masked to hidden cells only before sampling (reusing the encoding's own hidden-mask channel — no separate mask needs to be stored or passed around), the same fairness rule every other agent in this project follows: only the observation the environment returns is ever used, never `env.game.mines` or other hidden state.
+
+**Policy optimization approach.** Training alternates two phases, implemented in `PPOAgent.train()`:
+
+1. **Rollout collection** (`RolloutBuffer`) — play `rollout_length` environment steps under the current stochastic policy (sampling from the masked actor distribution, which is PPO's exploration mechanism — no separate epsilon schedule like DQN/Q-learning), storing each step's observation, action, reward, done flag, log-probability, and critic value estimate. A rollout may span several Minesweeper episodes (they're short on this board) or end mid-episode.
+2. **Advantage estimation** — Generalized Advantage Estimation (`RolloutBuffer.compute_gae`) walks the rollout backwards, blending the one-step TD advantage and the full-Monte-Carlo advantage via `gae_lambda`, bootstrapping from the critic's value estimate of whatever state the rollout stopped at (0 if that state is terminal) rather than needing every episode in a rollout to have already finished.
+3. **Clipped-surrogate update** (`PPOAgent._update`) — for `ppo_epochs` passes over the rollout in shuffled minibatches, recompute the ratio `pi_new(a|s) / pi_old(a|s)` and take `min(ratio * advantage, clip(ratio, 1-eps, 1+eps) * advantage)` as the policy loss, add a value-regression loss (critic vs. GAE's computed returns) and subtract an entropy bonus (encouraging continued exploration), then take one gradient step per minibatch. The clip term is what makes reusing a rollout across multiple epochs safe at all — without it, a policy-gradient update with no trust-region constraint can move the policy far enough in one step to invalidate the very data it just trained on.
+
+Every part of this is configurable on `PPOAgent`'s constructor: learning rate, `gamma`, `gae_lambda`, `clip_epsilon`, `entropy_coef`, `value_coef`, `rollout_length`, `ppo_epochs`, `batch_size`, and `seed`.
+
+### PPO benchmark results
+
+Trained for 6,000 episodes (the same budget `evaluate_agents.py` gives DQN) on the same 5x5/5-mine board, same seed, then evaluated greedily (`explore=False`, i.e. `argmax` over the masked actor distribution) over 200 episodes, identically to every other agent:
+
+| Agent | Win Rate | Avg Episode Length | Failures |
+|---|---|---|---|
+| Random Agent | 0.5% | 3.65 | 199/200 |
+| CSP Solver | 45.5% | 6.67 | 109/200 |
+| Q-Learning Agent | 0.5% | 4.06 | 199/200 |
+| DQN Agent (best checkpoint) | 1.0% | 4.10 | 198/200 |
+| **PPO Agent** | **0.0%** | 3.80 | 200/200 |
+
+**PPO did not outperform DQN at equal training budget — it currently sits at the floor, tied with (and nominally below) Random.** This is a real result, not a bug being explained away: the test suite confirms the implementation is mechanically correct (GAE matches hand-computed values, the clipped update measurably moves network weights, masking is fairness-compliant, training completes without errors), and the in-training diagnostics in `results/ppo_evaluate_agents_history.json` show the agent *was* learning something, just not enough to win:
+
+- Value loss fell steadily (49.6 → 6.8 over training), so the critic did learn to predict returns more accurately.
+- Actor entropy fell from 2.92 to 1.52 (nats; max entropy over 25 actions is `ln(25) ≈ 3.22`), so the policy did move away from uniform-random toward more confident action preferences.
+- But the in-training rolling win rate stayed essentially flat throughout — 0.6% in the first 1,000 episodes, 0.7% in the last 1,000 — so whatever preference the policy converged toward did not translate into materially more wins, and its greedy (`argmax`) mode scored 0/200 even though the stochastic training policy occasionally won by chance.
+
+**Why, without overstating what this benchmark can and can't tell us:** 6,000 episodes at ~3.7 steps/episode is only ~22,000 environment steps, versus DQN's ~6,000-episode run drawing repeatedly from a 20,000-transition replay buffer — DQN reuses experience many times per transition; PPO's on-policy constraint means each of those ~22,000 steps is used for exactly one update before being discarded. Combined with Minesweeper's sparse, delayed win signal (reward only distinguishes a good early move from a bad one once the game ends many steps later) and PPO's reliance on entropy-driven exploration rather than an explicit epsilon schedule, this budget plausibly just isn't enough on-policy data for GAE's advantage estimates to reliably credit the specific cell choices that matter. This mirrors the DQN investigation's own conclusion that remaining limitations are about exploration and sparse rewards rather than any one algorithm's mechanics — swapping value-based for policy-based learning didn't sidestep that problem here.
+
+**Limitations of this benchmark specifically:** 6,000 episodes and default hyperparameters (`rollout_length=256`, `ppo_epochs=4`, `lr=3e-4`) were chosen to match DQN's `evaluate_agents.py` budget for a like-for-like comparison, not tuned for PPO. Whether PPO can do better than DQN on this board is genuinely open — this result rules out "PPO trivially wins," not "PPO can't work here." The natural next experiments (not run here, to avoid repeating the DQN milestone's mistake of tuning without a plan): longer training, reward shaping or a denser signal, larger `rollout_length` for less noisy advantage estimates, and a learning-rate schedule, the same lever that mattered most for DQN.
 
 ## Technology Stack
 
