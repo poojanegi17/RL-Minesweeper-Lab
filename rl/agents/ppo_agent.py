@@ -41,7 +41,9 @@ by masking the actor's logits before sampling, mirroring
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -51,6 +53,8 @@ from torch.distributions import Categorical
 from models.dqn_network import encode_observation
 from models.ppo_network import PPONetwork
 from training.rollout_buffer import RolloutBuffer
+
+PathLike = Union[str, Path]
 
 # Gradient-norm cap for the PPO update, mirroring DQNAgent's
 # clip_grad_norm_ use for the same reason (bound the damage a single noisy
@@ -124,6 +128,79 @@ class PPOAgent:
         self.network = PPONetwork(rows, cols).to(self.device)
         self.optimizer = torch.optim.Adam(self.network.parameters(), lr=lr)
         self.buffer = RolloutBuffer()
+
+    def save_checkpoint(
+        self,
+        path: PathLike,
+        episode: int,
+        win_rate: float,
+        average_reward: float,
+        average_episode_length: float,
+    ) -> None:
+        """Save the actor-critic network's weights plus evaluation metadata to `path`.
+
+        Mirrors `DQNAgent.save_checkpoint`. Metadata (`episode`, `win_rate`,
+        `average_reward`, `average_episode_length`, `timestamp`) lets a later
+        run report when and how well this checkpoint was performing without
+        re-running evaluation just to decide whether it's worth loading.
+        """
+        checkpoint = {
+            "model_state_dict": self.network.state_dict(),
+            "rows": self.rows,
+            "cols": self.cols,
+            "metadata": {
+                "episode": episode,
+                "win_rate": win_rate,
+                "average_reward": average_reward,
+                "average_episode_length": average_episode_length,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        }
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(checkpoint, path)
+
+    def load_checkpoint(self, path: PathLike) -> Dict[str, Any]:
+        """Load a checkpoint saved by `save_checkpoint` into the network.
+
+        Returns:
+            The checkpoint's metadata dict (`episode`, `win_rate`,
+            `average_reward`, `average_episode_length`, `timestamp`).
+        """
+        checkpoint = torch.load(Path(path), map_location=self.device, weights_only=False)
+        self.network.load_state_dict(checkpoint["model_state_dict"])
+        return checkpoint["metadata"]
+
+    def _evaluate_greedy(self, env: Any, episodes: int) -> Dict[str, float]:
+        """Run `episodes` greedy episodes and return win rate / avg reward / avg length.
+
+        Used internally for periodic checkpoint evaluation during training.
+        Kept self-contained (rather than importing `evaluation.metrics`) so
+        `PPOAgent` has no dependency on the evaluation layer, mirroring
+        `DQNAgent._evaluate_greedy`.
+        """
+        wins = 0
+        total_reward = 0.0
+        total_steps = 0
+        for _ in range(episodes):
+            observation, info = env.reset()
+            terminated = truncated = False
+            episode_reward = 0.0
+            steps = 0
+            while not (terminated or truncated):
+                action = self.select_action(observation, explore=False)
+                observation, reward, terminated, truncated, info = env.step(action)
+                episode_reward += reward
+                steps += 1
+            total_reward += episode_reward
+            total_steps += steps
+            if info.get("won", False):
+                wins += 1
+        return {
+            "win_rate": wins / episodes,
+            "avg_reward": total_reward / episodes,
+            "avg_episode_length": total_steps / episodes,
+        }
 
     def _to_tensor(self, array: np.ndarray) -> torch.Tensor:
         """Convert a (N, channels, rows, cols) float array into a tensor on `self.device`."""
@@ -209,14 +286,32 @@ class PPOAgent:
         Returns:
             Average `policy_loss`, `value_loss`, `entropy`, `approx_kl`
             (mean `old_log_prob - new_log_prob`, a cheap divergence
-            diagnostic), and `clip_fraction` (fraction of ratios that hit the
-            clip boundary) across all epochs/minibatches in this update.
+            diagnostic), `clip_fraction` (fraction of ratios that hit the
+            clip boundary), and `total_loss` (the combined objective actually
+            optimized) across all epochs/minibatches in this update, plus
+            `explained_variance` (see below), computed once for the whole
+            rollout rather than per-minibatch.
         """
         data = self.buffer.get()
         observations = self._to_tensor(data["observations"])
         actions = torch.from_numpy(data["actions"]).to(self.device)
         old_log_probs = torch.from_numpy(data["log_probs"]).to(self.device)
         returns = torch.from_numpy(data["returns"]).to(self.device)
+
+        # Explained variance of the critic's *pre-update* value predictions
+        # against this rollout's GAE returns: 1.0 means the critic perfectly
+        # predicts returns, 0.0 means it's no better than predicting the mean
+        # return, and negative means worse than that. A standard PPO
+        # diagnostic (see e.g. OpenAI Baselines) for whether the critic is
+        # learning anything useful, independent of whether the actor is.
+        pre_update_values = data["values"]
+        returns_np = data["returns"]
+        returns_variance = np.var(returns_np)
+        explained_variance = (
+            float("nan")
+            if returns_variance < 1e-8
+            else float(1.0 - np.var(returns_np - pre_update_values) / returns_variance)
+        )
 
         advantages = data["advantages"]
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
@@ -226,7 +321,7 @@ class PPOAgent:
         indices = np.arange(num_steps)
 
         stats: Dict[str, List[float]] = {
-            "policy_loss": [], "value_loss": [], "entropy": [], "approx_kl": [], "clip_fraction": [],
+            "policy_loss": [], "value_loss": [], "entropy": [], "approx_kl": [], "clip_fraction": [], "total_loss": [],
         }
 
         for _ in range(self.ppo_epochs):
@@ -267,14 +362,20 @@ class PPOAgent:
                 stats["entropy"].append(float(entropy.item()))
                 stats["approx_kl"].append(float(approx_kl.item()))
                 stats["clip_fraction"].append(float(clip_fraction.item()))
+                stats["total_loss"].append(float(loss.item()))
 
-        return {key: sum(values_) / len(values_) for key, values_ in stats.items()}
+        averaged = {key: sum(values_) / len(values_) for key, values_ in stats.items()}
+        averaged["explained_variance"] = explained_variance
+        return averaged
 
     def train(
         self,
         env: Any,
         episodes: int,
         rollout_length: Optional[int] = None,
+        checkpoint_dir: Optional[PathLike] = None,
+        checkpoint_every: int = 500,
+        checkpoint_eval_episodes: int = 50,
     ) -> List[Dict[str, Any]]:
         """Train for approximately `episodes` episodes via repeated rollout-then-update cycles.
 
@@ -287,14 +388,33 @@ class PPOAgent:
         episode-aligned, the final rollout may finish a few episodes past
         the requested budget rather than stopping exactly on it.
 
+        If `checkpoint_dir` is given, every `checkpoint_every` completed
+        episodes the current greedy policy is evaluated for
+        `checkpoint_eval_episodes` episodes (mirroring `DQNAgent.train`); if
+        its win rate beats every previous evaluation this run, the network is
+        saved to `checkpoint_dir/best_policy.pt`. At the end of training the
+        current weights are always saved to `checkpoint_dir/final_policy.pt`,
+        regardless of whether they're the best seen. `checkpoint_dir=None`
+        (the default) disables all of this. A checkpoint evaluation reuses
+        `env` (calling its own `reset()`/`step()` many times), so the
+        in-progress rollout's `observation` is always re-freshened with a
+        fresh `env.reset()` immediately afterward rather than assumed to
+        still be valid.
+
         Returns:
             A per-episode history list, one entry per completed episode:
             `total_reward`, `steps`, `won`, `lr`, plus the most recently
             completed update's `policy_loss`, `value_loss`, `entropy`,
-            `approx_kl`, `clip_fraction` (all `None` until the first update
-            finishes, then carried forward until the next one).
+            `approx_kl`, `clip_fraction`, `total_loss`, `explained_variance`
+            (all `None` until the first update finishes, then carried
+            forward until the next one).
         """
         rollout_length = rollout_length if rollout_length is not None else self.rollout_length
+
+        checkpoint_path = Path(checkpoint_dir) if checkpoint_dir is not None else None
+        if checkpoint_path is not None:
+            checkpoint_path.mkdir(parents=True, exist_ok=True)
+        best_win_rate = -1.0
 
         history: List[Dict[str, Any]] = []
         observation, info = env.reset()
@@ -303,7 +423,8 @@ class PPOAgent:
         episode_steps = 0
         done = False
         last_metrics: Dict[str, Optional[float]] = {
-            "policy_loss": None, "value_loss": None, "entropy": None, "approx_kl": None, "clip_fraction": None,
+            "policy_loss": None, "value_loss": None, "entropy": None, "approx_kl": None,
+            "clip_fraction": None, "total_loss": None, "explained_variance": None,
         }
 
         while completed_episodes < episodes:
@@ -332,6 +453,24 @@ class PPOAgent:
                     completed_episodes += 1
                     episode_reward = 0.0
                     episode_steps = 0
+
+                    if checkpoint_path is not None and completed_episodes % checkpoint_every == 0:
+                        eval_result = self._evaluate_greedy(env, checkpoint_eval_episodes)
+                        if eval_result["win_rate"] > best_win_rate:
+                            best_win_rate = eval_result["win_rate"]
+                            self.save_checkpoint(
+                                checkpoint_path / "best_policy.pt",
+                                episode=completed_episodes,
+                                win_rate=eval_result["win_rate"],
+                                average_reward=eval_result["avg_reward"],
+                                average_episode_length=eval_result["avg_episode_length"],
+                            )
+
+                    # Always reset after a (possible) checkpoint eval, since
+                    # that eval may have run env.reset()/env.step() many
+                    # times itself -- resuming rollout collection on the
+                    # pre-eval `observation` would silently desync it from
+                    # the environment's actual current state.
                     observation, info = env.reset()
                     if completed_episodes >= episodes:
                         break
@@ -346,5 +485,15 @@ class PPOAgent:
 
             self.buffer.compute_gae(bootstrap_value, self.gamma, self.gae_lambda)
             last_metrics = self._update()
+
+        if checkpoint_path is not None:
+            final_eval = self._evaluate_greedy(env, checkpoint_eval_episodes)
+            self.save_checkpoint(
+                checkpoint_path / "final_policy.pt",
+                episode=episodes,
+                win_rate=final_eval["win_rate"],
+                average_reward=final_eval["avg_reward"],
+                average_episode_length=final_eval["avg_episode_length"],
+            )
 
         return history

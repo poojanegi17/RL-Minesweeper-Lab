@@ -1,6 +1,7 @@
 """Tests for the PPO network, rollout buffer, and PPO agent."""
 
 import inspect
+import json
 
 import numpy as np
 import pytest
@@ -10,6 +11,7 @@ from agents.ppo_agent import PPOAgent
 from environment.minesweeper_env import MinesweeperEnv
 from models.dqn_network import NUM_CHANNELS, encode_observation
 from models.ppo_network import PPONetwork
+from training.history_export import save_history_csv, save_history_json
 from training.rollout_buffer import RolloutBuffer
 
 
@@ -278,7 +280,9 @@ def test_update_changes_network_weights():
     after = list(agent.network.parameters())
 
     assert any(not torch.equal(b, a) for b, a in zip(before, after))
-    assert set(metrics.keys()) == {"policy_loss", "value_loss", "entropy", "approx_kl", "clip_fraction"}
+    assert set(metrics.keys()) == {
+        "policy_loss", "value_loss", "entropy", "approx_kl", "clip_fraction", "total_loss", "explained_variance",
+    }
     assert metrics["entropy"] >= 0.0  # entropy of a categorical distribution is non-negative
 
 
@@ -353,3 +357,226 @@ def test_train_respects_custom_rollout_length_argument():
     history = agent.train(env, episodes=3, rollout_length=8)
 
     assert len(history) >= 3
+
+
+# --- PPOAgent: extended metrics (total_loss, explained_variance) -----------
+
+
+def test_update_returns_total_loss_and_explained_variance():
+    agent = PPOAgent(rows=3, cols=3, ppo_epochs=2, batch_size=4, seed=0)
+    board = np.full((3, 3), -1)
+    for i in range(8):
+        agent.buffer.add(encode_observation(board), action=i % 9, reward=1.0, done=(i == 7), log_prob=-1.0, value=0.0)
+    agent.buffer.compute_gae(last_value=0.0, gamma=0.9, gae_lambda=0.95)
+
+    metrics = agent._update()
+
+    assert "total_loss" in metrics
+    assert "explained_variance" in metrics
+    assert isinstance(metrics["total_loss"], float)
+    # explained_variance <= 1.0 by construction (1.0 - non-negative-ratio);
+    # can be negative (worse than predicting the mean) but not > 1.0.
+    assert metrics["explained_variance"] <= 1.0 + 1e-6
+
+
+def test_explained_variance_is_perfect_when_values_exactly_match_returns():
+    agent = PPOAgent(rows=2, cols=2, ppo_epochs=1, batch_size=4, seed=0)
+    board = np.full((2, 2), -1)
+    # Each step is its own terminal (done=True) transition, so GAE's delta
+    # reduces to `reward - value` and the bootstrap term drops out entirely
+    # -- meaning return_t == reward_t regardless of value_t. Setting
+    # value_t == reward_t for every (varying) reward therefore makes the
+    # rollout's pre-update values match returns exactly, with genuine
+    # variance across steps (unlike a constant-reward rollout, where
+    # Var(returns) == 0 and explained_variance is undefined by design).
+    rewards = [1.0, 2.0, 3.0, 4.0]
+    for reward in rewards:
+        agent.buffer.add(encode_observation(board), action=0, reward=reward, done=True, log_prob=-1.0, value=reward)
+    agent.buffer.compute_gae(last_value=0.0, gamma=0.9, gae_lambda=0.95)
+
+    assert agent.buffer.returns.tolist() == rewards  # confirms the premise above before checking explained_variance
+    metrics = agent._update()
+
+    assert metrics["explained_variance"] == pytest.approx(1.0, abs=1e-5)
+
+
+def test_explained_variance_is_nan_when_returns_have_no_variance():
+    # A degenerate rollout where every return is identical has Var(returns)
+    # == 0, making "fraction of variance explained" undefined -- the
+    # implementation should report NaN rather than dividing by zero.
+    agent = PPOAgent(rows=2, cols=2, ppo_epochs=1, batch_size=4, seed=0)
+    board = np.full((2, 2), -1)
+    for _ in range(4):
+        agent.buffer.add(encode_observation(board), action=0, reward=1.0, done=True, log_prob=-1.0, value=0.0)
+    agent.buffer.compute_gae(last_value=0.0, gamma=0.9, gae_lambda=0.95)
+
+    metrics = agent._update()
+
+    assert np.isnan(metrics["explained_variance"])
+
+
+# --- PPOAgent: checkpointing -------------------------------------------------
+
+
+def test_save_checkpoint_writes_state_dict_and_metadata(tmp_path):
+    agent = PPOAgent(rows=3, cols=3, seed=0)
+    path = tmp_path / "policy.pt"
+
+    agent.save_checkpoint(path, episode=10, win_rate=0.4, average_reward=2.5, average_episode_length=5.5)
+
+    assert path.exists()
+    checkpoint = torch.load(path, weights_only=False)
+    assert "model_state_dict" in checkpoint
+    assert checkpoint["metadata"]["episode"] == 10
+    assert checkpoint["metadata"]["win_rate"] == 0.4
+    assert checkpoint["metadata"]["average_reward"] == 2.5
+    assert checkpoint["metadata"]["average_episode_length"] == 5.5
+    assert "timestamp" in checkpoint["metadata"]
+
+
+def test_load_checkpoint_restores_weights_and_returns_metadata(tmp_path):
+    agent = PPOAgent(rows=3, cols=3, seed=0)
+    agent.save_checkpoint(
+        tmp_path / "best_policy.pt", episode=42, win_rate=0.55, average_reward=3.2, average_episode_length=6.1
+    )
+
+    with torch.no_grad():
+        for p in agent.network.parameters():
+            p.add_(1.0)
+
+    metadata = agent.load_checkpoint(tmp_path / "best_policy.pt")
+
+    assert metadata["episode"] == 42
+    assert metadata["win_rate"] == 0.55
+    assert metadata["average_reward"] == 3.2
+    assert metadata["average_episode_length"] == 6.1
+    assert "timestamp" in metadata
+
+    reference = PPOAgent(rows=3, cols=3, seed=0)
+    for loaded, ref in zip(agent.network.parameters(), reference.network.parameters()):
+        assert torch.equal(loaded, ref)
+
+
+def test_checkpoint_best_policy_only_replaced_on_improvement(tmp_path, monkeypatch):
+    env = MinesweeperEnv(rows=3, cols=3, num_mines=1, seed=0)
+    agent = PPOAgent(rows=3, cols=3, rollout_length=4, ppo_epochs=1, batch_size=4, seed=0)
+
+    # Script a non-monotonic sequence of "evaluation" win rates: 5 periodic
+    # checkpoint evals (one per completed episode, since checkpoint_every=1)
+    # plus one final eval at the end of training.
+    scripted = iter(
+        [
+            {"win_rate": 0.2, "avg_reward": 1.0, "avg_episode_length": 3.0},
+            {"win_rate": 0.5, "avg_reward": 1.0, "avg_episode_length": 3.0},
+            {"win_rate": 0.3, "avg_reward": 1.0, "avg_episode_length": 3.0},
+            {"win_rate": 0.7, "avg_reward": 1.0, "avg_episode_length": 3.0},
+            {"win_rate": 0.1, "avg_reward": 1.0, "avg_episode_length": 3.0},
+            {"win_rate": 0.1, "avg_reward": 1.0, "avg_episode_length": 3.0},
+        ]
+    )
+
+    def fake_evaluate_greedy(env, episodes):
+        return next(scripted)
+
+    save_calls = []
+    original_save = agent.save_checkpoint
+
+    def spy_save(path, episode, win_rate, average_reward, average_episode_length):
+        save_calls.append(win_rate)
+        original_save(path, episode, win_rate, average_reward, average_episode_length)
+
+    monkeypatch.setattr(agent, "_evaluate_greedy", fake_evaluate_greedy)
+    monkeypatch.setattr(agent, "save_checkpoint", spy_save)
+
+    agent.train(env, episodes=5, checkpoint_dir=tmp_path, checkpoint_every=1, checkpoint_eval_episodes=1)
+
+    # Best-policy saves happen only on a new running-max win rate (0.2, 0.5,
+    # 0.7); the trailing 0.1 is the unconditional final-policy save.
+    assert save_calls == [0.2, 0.5, 0.7, 0.1]
+
+    best_metadata = agent.load_checkpoint(tmp_path / "best_policy.pt")
+    assert best_metadata["win_rate"] == 0.7
+    final_metadata = agent.load_checkpoint(tmp_path / "final_policy.pt")
+    assert final_metadata["win_rate"] == 0.1
+
+
+def test_no_checkpointing_by_default(monkeypatch):
+    env = MinesweeperEnv(rows=3, cols=3, num_mines=1, seed=0)
+    agent = PPOAgent(rows=3, cols=3, rollout_length=4, ppo_epochs=1, batch_size=4, seed=0)
+
+    save_calls = []
+    monkeypatch.setattr(agent, "save_checkpoint", lambda *a, **k: save_calls.append((a, k)))
+
+    agent.train(env, episodes=3)  # checkpoint_dir defaults to None
+
+    assert save_calls == []
+
+
+def test_best_checkpoint_win_rate_can_exceed_deployed_final_win_rate(tmp_path):
+    # Integration-level sanity check that checkpointing round-trips through
+    # a real (not monkeypatched) training run: save + reload must not error,
+    # and the two checkpoint files must both exist and be independently loadable.
+    env = MinesweeperEnv(rows=3, cols=3, num_mines=1, seed=12)
+    agent = PPOAgent(rows=3, cols=3, rollout_length=16, ppo_epochs=2, batch_size=4, seed=12)
+
+    agent.train(env, episodes=30, checkpoint_dir=tmp_path, checkpoint_every=10, checkpoint_eval_episodes=5)
+
+    assert (tmp_path / "best_policy.pt").exists()
+    assert (tmp_path / "final_policy.pt").exists()
+
+    best_meta = agent.load_checkpoint(tmp_path / "best_policy.pt")
+    final_meta = agent.load_checkpoint(tmp_path / "final_policy.pt")
+    assert 0.0 <= best_meta["win_rate"] <= 1.0
+    assert 0.0 <= final_meta["win_rate"] <= 1.0
+    assert best_meta["episode"] <= final_meta["episode"]
+
+
+# --- PPOAgent: history export ------------------------------------------------
+
+
+def test_training_history_exports_to_json_and_csv(tmp_path):
+    env = MinesweeperEnv(rows=3, cols=3, num_mines=1, seed=4)
+    agent = PPOAgent(rows=3, cols=3, rollout_length=16, ppo_epochs=2, batch_size=4, seed=4)
+
+    history = agent.train(env, episodes=10)
+
+    json_path = tmp_path / "ppo_history.json"
+    csv_path = tmp_path / "ppo_history.csv"
+    save_history_json(history, json_path)
+    save_history_csv(history, csv_path)
+
+    records = json.loads(json_path.read_text())
+    assert len(records) == len(history)
+    assert records[0]["episode"] == 1
+    expected_keys = {
+        "total_reward", "steps", "won", "lr", "policy_loss", "value_loss",
+        "entropy", "approx_kl", "clip_fraction", "total_loss", "explained_variance",
+    }
+    assert expected_keys.issubset(records[-1].keys())
+
+    assert csv_path.exists()
+    assert csv_path.read_text().splitlines()[0].startswith("episode,")
+
+
+# --- PPOAgent: longer-training compatibility (checkpointing + shaped reward) --
+
+
+def test_training_compatible_with_checkpointing_over_a_longer_run():
+    env = MinesweeperEnv(rows=4, cols=4, num_mines=2, seed=13)
+    agent = PPOAgent(rows=4, cols=4, rollout_length=64, ppo_epochs=2, batch_size=16, seed=13)
+
+    history = agent.train(env, episodes=120, checkpoint_dir=None)  # checkpointing disabled path at this scale
+    assert len(history) >= 120
+
+
+def test_training_compatible_with_shaped_reward_env_over_a_longer_run():
+    env = MinesweeperEnv(rows=4, cols=4, num_mines=2, seed=14, reward_mode="shaped")
+    agent = PPOAgent(rows=4, cols=4, rollout_length=64, ppo_epochs=2, batch_size=16, seed=14)
+
+    before = [p.clone() for p in agent.network.parameters()]
+    history = agent.train(env, episodes=120)
+    after = list(agent.network.parameters())
+
+    assert len(history) >= 120
+    assert any(not torch.equal(b, a) for b, a in zip(before, after))
+    assert any(entry["policy_loss"] is not None for entry in history)

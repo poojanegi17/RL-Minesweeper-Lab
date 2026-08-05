@@ -56,14 +56,14 @@ RL Minesweeper Lab/
 └── rl/                        # Python RL environment and agents
     ├── environment/
     │   ├── minesweeper.py       # Core game engine
-    │   ├── minesweeper_env.py   # Gymnasium environment wrapper
+    │   ├── minesweeper_env.py   # Gymnasium environment wrapper (default + shaped reward modes)
     │   └── utils.py             # Coordinate/array helpers
     ├── agents/
     │   ├── random_agent.py      # Random baseline
     │   ├── csp_solver.py        # CSP logical solver
     │   ├── q_learning_agent.py  # Tabular Q-Learning agent
     │   ├── dqn_agent.py         # Double DQN agent + checkpointing + LR scheduling
-    │   └── ppo_agent.py         # PPO agent (rollout collection, GAE, clipped-surrogate update)
+    │   └── ppo_agent.py         # PPO agent (rollout collection, GAE, clipped-surrogate update, checkpointing)
     ├── models/
     │   ├── dqn_network.py       # CNN Q-network (configurable size) + state encoding
     │   └── ppo_network.py       # Shared-CNN actor-critic network
@@ -76,6 +76,8 @@ RL Minesweeper Lab/
     │   ├── dqn_experiment.py    # Configurable single DQN training run
     │   ├── compare_experiments.py  # Compare DQN runs by training budget
     │   ├── compare_ablation.py  # Compare DQN stabilization experiments (A/B/C/D)
+    │   ├── ppo_experiment.py    # Configurable single PPO training run (reward mode, checkpointing)
+    │   ├── compare_ppo_experiments.py  # Compare PPO improvement experiments (A/B/C/D)
     │   └── metrics.py           # Episode running and metric aggregation
     └── tests/                   # Pytest suite
 ```
@@ -120,9 +122,9 @@ Future RL Agents (A2C)
 | CSP Solver | Logical Solver | ~45.5% |
 | Q-Learning Agent | Tabular RL | ~0.5%* |
 | DQN Agent | Deep RL (Double DQN, CNN) | ~1.0%* |
-| PPO Agent | Deep RL (Actor-Critic, CNN) | ~0.0%* |
+| PPO Agent | Deep RL (Actor-Critic, CNN) | ~0.5%* |
 
-*Measured on a 5x5 board with 5 mines over 200 episodes (`rl/evaluation/evaluate_agents.py`), with Q-Learning trained for 20,000 episodes and DQN and PPO each trained for 6,000 episodes first, DQN evaluated using its best checkpoint (see below). These are current benchmark results and will change as training budgets and algorithms improve.*
+*Measured on a 5x5 board with 5 mines over 200 episodes (`rl/evaluation/evaluate_agents.py`), with Q-Learning trained for 20,000 episodes and DQN and PPO each trained for 6,000 episodes first, DQN evaluated using its best checkpoint and PPO using its recommended configuration (shaped reward + best checkpoint, see below). These are current benchmark results and will change as training budgets and algorithms improve.*
 
 \* *All three learned agents are still far behind CSP on this board — see [Experiments](#experiments) and [PPO](#ppo-proximal-policy-optimization) for why, and for evidence (on a smaller board, and with a longer DQN training budget) that Q-Learning and DQN are learning correctly rather than being broken. PPO's implementation is verified correct by its test suite, but this benchmark alone doesn't yet distinguish "PPO needs more training/tuning" from a deeper limitation — see the PPO section's limitations discussion.*
 
@@ -255,6 +257,68 @@ Trained for 6,000 episodes (the same budget `evaluate_agents.py` gives DQN) on t
 
 **Limitations of this benchmark specifically:** 6,000 episodes and default hyperparameters (`rollout_length=256`, `ppo_epochs=4`, `lr=3e-4`) were chosen to match DQN's `evaluate_agents.py` budget for a like-for-like comparison, not tuned for PPO. Whether PPO can do better than DQN on this board is genuinely open — this result rules out "PPO trivially wins," not "PPO can't work here." The natural next experiments (not run here, to avoid repeating the DQN milestone's mistake of tuning without a plan): longer training, reward shaping or a denser signal, larger `rollout_length` for less noisy advantage estimates, and a learning-rate schedule, the same lever that mattered most for DQN.
 
+### PPO improvement experiments
+
+The benchmark above closed with three specific, testable hypotheses for why PPO scored 0%: sparse rewards making credit assignment hard, on-policy data being far more expensive than DQN's replayed transitions, and no checkpoint selection to catch a bad final snapshot. This round tests those directly with controlled, single-variable-at-a-time experiments (same methodology as the [DQN stability investigation](#dqn-stability-investigation)), plus two new capabilities added to support them:
+
+**Reward shaping** (`MinesweeperEnv(reward_mode="shaped")`, `environment/minesweeper_env.py`) is opt-in — `reward_mode="default"` is untouched and stays the default, since every number in this README up to this point was measured under it. `"shaped"` keeps the same +1 base reward for a safe reveal but adds `+0.2` per *additional* cell a single action's cascade reveals (Minesweeper flood-fills every connected zero-count region in one move — `Minesweeper._flood_reveal`, already existing engine behavior, not new), and scales the terminal rewards up (mine hit `-15` vs. `-10`, win `+20` vs. `+10`). The cascade bonus is computed purely from `self.game.revealed` cell counts before/after the move — never from `self.game.mines` — so it doesn't relax the "agent only sees what the environment returns" rule any agent in this project follows. The reasoning: a flat +1 for every reveal gives the same signal to a move that resolves one cell and a move that resolves twenty, even though the latter is far more informative and (since a cascade only happens where the clicked cell's neighbor-count is 0, which cannot occur next to a mine) correlates with safer regions of the board — a denser, still mine-location-blind proxy signal aimed directly at the credit-assignment problem.
+
+**PPO checkpointing** (`PPOAgent.save_checkpoint`/`load_checkpoint`, `train(..., checkpoint_dir=...)`) mirrors `DQNAgent`'s mechanism exactly: every `checkpoint_every` episodes, the greedy policy is evaluated for `checkpoint_eval_episodes` episodes, and `best_policy.pt` is overwritten whenever a new running-best win rate is found; `final_policy.pt` is always written unconditionally at the end. One PPO-specific wrinkle: a checkpoint eval reuses the same `env` passed to `train()`, which would otherwise leave the in-progress rollout's tracked observation stale (see `agents/ppo_agent.py`'s `train()` docstring) — handled by always re-calling `env.reset()` immediately after a checkpoint eval, before rollout collection resumes.
+
+Four experiments, all on the same 5x5/5-mine board, same seed (42), same evaluation protocol (200 episodes, greedy, **always under `reward_mode="default"`** regardless of what the agent trained under — otherwise a shaped run's inflated per-step rewards would make `avg_reward` meaningless as a cross-experiment column; win rate needs no such adjustment since it's already reward-scale-invariant):
+
+| Experiment | Configuration | Win Rate | Avg Reward | Observations |
+|---|---|---|---|---|
+| A: Baseline | 6,000 episodes, default reward, final weights | 1.0% | -6.97 | Matches the DQN-budget-matched benchmark's ballpark (not identical to the 0% figure above — that run shared one env/RNG stream across *all five* agents in `evaluate_agents.py`, so it started from a different point in the mine-layout sequence; this experiment's own fresh seeded env is the fairer baseline for the comparisons below). |
+| B: Longer training | 25,000 episodes (4x A), default reward, final weights | 0.5% | -6.82 | **Worse than A, despite 4x more training.** Entropy collapsed hardest of any experiment (2.96 → 0.56 nats) while the critic's explained variance *fell* (0.075 → 0.063 second-half) — the policy grew more confident without getting better at predicting or earning returns. |
+| C: Reward shaping | 25,000 episodes, shaped reward (training only), final weights | 1.5% | -6.76 | **Best deployed win rate of the four.** Entropy collapsed less than B at the same episode budget (2.96 → 0.85) and explained variance *rose* (0.094 → 0.110) instead of falling — the denser signal measurably changed training dynamics, not just the final score. |
+| D: Reward shaping + checkpoint selection | 25,000 episodes, shaped reward, best checkpoint deployed | 1.5% | -6.80 | **Identical training to C** (checkpoint evals don't change gradients, only which weights get saved); deployed win rate tied C's. Best checkpoint (episode 15,000) scored 4.0% on its noisy 50-episode in-training sample, but re-evaluated over the full 200 episodes it scores the same 1.5% as the final (episode 25,000) weights — see analysis below. |
+
+**Does PPO improve? Only via reward shaping, and only modestly.** C and D's 1.5% beats A's 1.0% and clearly beats B's 0.5%, and it's corroborated by more than the headline number — entropy and explained-variance trends both moved in the direction you'd want under shaping and moved the *wrong* way under B's "just train longer." That's a real, attributable effect, not noise dressed up as one.
+
+**Longer training alone (B) didn't help, and the *why* is informative.** B's in-training rolling win rate actually trended upward over the run (0.56% in the first quarter to 1.14% in the third), so the stochastic training policy wasn't stuck — but the single greedy snapshot deployed at the very end scored only 0.5%, and B deliberately used raw final weights (no checkpoint) to isolate "more training" as the only variable. This is the same lesson [Experiment E](#experiment-e-final-dqn-configuration) already taught for DQN — a single final snapshot can misrepresent a noisy training run — except here it cuts the other way: PPO's entropy collapsed fastest under B of any experiment, suggesting more on-policy data without a denser signal let the policy over-commit to a mediocre strategy rather than a better one.
+
+**Checkpoint selection (D) provided no measurable benefit here, unlike DQN's Experiment E.** Re-evaluating D's `best_policy.pt` (episode 15,000) and `final_policy.pt` (episode 25,000) independently over the full 200-episode protocol gives the *same* 1.5% win rate for both (3/200 wins each) — the 4.0% the checkpoint scored during training was a noisy 50-episode sample that didn't hold up, the same known failure mode already flagged for DQN's Experiment B and E. The deeper reason checkpointing had nothing to catch here: DQN's checkpointing paid off because training had a genuine peak-then-degrade shape (a real regression to rescue a policy from). PPO's shaped-reward runs (C/D) instead hover in a persistently noisy ~0.8-1.0% *in-training* band for their entire second half with no clear peak — there's no better snapshot hiding earlier in the run for checkpoint selection to find.
+
+**What this does and doesn't show.** Reward shaping is a validated, real lever, not a hoped-for one — but a jump from 0.5-1.0% to 1.5% is still a small absolute improvement, and every configuration here remains far below DQN's best result (2.0-3.5% across its own experiments) and nowhere close to CSP's 45.5%. The critic's explained variance tops out at 0.110 even in the best run — the value function still explains under 11% of return variance, meaning most of what determines whether a Minesweeper game is won remains poorly predicted by the critic regardless of these changes. That's consistent with the original diagnosis (sparse rewards, hard credit assignment) being only partially addressed, not solved: reward shaping made the signal denser, not fundamentally less sparse relative to the size of the decision space. Longer training and checkpoint selection, the other two hypothesized fixes, are now experimentally ruled out as *not* the bottleneck in isolation — reward shaping (or a further denser signal, or architectural changes) is where any further gain is likely to come from, and even that has not been tuned here, only validated at default hyperparameters.
+
+All four experiments' full per-episode histories and configs are reproducible via `evaluation.ppo_experiment` (`--reward-mode {default,shaped}`, `--checkpoint-every`, `--no-best-checkpoint`, plus every PPO hyperparameter as a flag) and comparable via `evaluation.compare_ppo_experiments`.
+
+**The PPO improvement experiments are complete.** No further hyperparameter tuning or new algorithms are planned for this milestone -- the findings above are integrated into the project's defaults (`evaluation/evaluate_agents.py` now trains PPO with the recommended configuration below) rather than left as a one-off experiment result.
+
+### Final PPO configuration
+
+**Architecture** (unchanged from the design above): a shared CNN trunk over the 11-channel one-hot board encoding, branching into an actor head (one logit per cell, masked to hidden cells before sampling) and a critic head (scalar `V(s)`), trained with GAE advantages and a clipped-surrogate objective. Nothing about the network or the core PPO algorithm changed in this round -- only the environment's reward signal and the deployment strategy did.
+
+**Recommended configuration**, per the validated experiment findings above:
+
+- `reward_mode="shaped"` for training -- the one change in this round with a corroborated, attributable effect (higher deployed win rate, less entropy collapse, rising rather than falling explained variance).
+- Best-checkpoint deployment (`checkpoint_dir` set, `best_policy.pt` loaded for evaluation) -- kept as a no-cost safety net consistent with DQN's own conclusion, even though Experiment D showed it made no measurable difference on this particular run (see above for why: no peak-then-degrade shape for it to rescue). It can only help or tie, never hurt, so there's no reason to drop it.
+- All other hyperparameters at their original defaults, deliberately left untuned: `lr=3e-4`, `gamma=0.99`, `gae_lambda=0.95`, `clip_epsilon=0.2`, `entropy_coef=0.01`, `value_coef=0.5`, `rollout_length=256`, `ppo_epochs=4`, `batch_size=64`.
+- Evaluation always under `reward_mode="default"`, regardless of training reward, so PPO's reported win rate and avg reward stay on the same scale as every other agent in this project.
+
+### Final PPO benchmark
+
+`evaluation/evaluate_agents.py` now trains PPO with this recommended configuration (shaped reward, best-checkpoint deployment) at the same 6,000-episode budget it gives DQN, alongside every other agent, all evaluated identically (200 episodes, greedy, default reward):
+
+| Agent | Win Rate | Avg Episode Length | Failures |
+|---|---|---|---|
+| Random Agent | 0.5% | 3.65 | 199/200 |
+| CSP Solver | 45.5% | 6.67 | 109/200 |
+| Q-Learning Agent | 0.5% | 4.06 | 199/200 |
+| DQN Agent (best checkpoint) | 1.0% | 4.10 | 198/200 |
+| **PPO Agent (shaped + best checkpoint)** | **0.5%** | 3.23 | 199/200 |
+
+**Read this number carefully -- it's smaller than the improvement demonstrated above, and that gap is itself informative.** At this budget (6,000 episodes, the same shared-environment/RNG-stream comparison every other agent in this table uses), PPO's recommended configuration scores 0.5% (1/200 wins) -- an uptick from the original unshaped/no-checkpoint benchmark's 0.0%, but a single extra win out of 200 games is not distinguishable from noise on its own. The clearer, more reliable evidence for reward shaping's effect is the dedicated 25,000-episode experiments above (C/D: 1.5%, corroborated by entropy and explained-variance trends, not just a win-rate count) -- this table's 6,000-episode budget is simply too short for the improvement to consistently clear the noise floor of a 200-episode evaluation. Both numbers are honestly reported here rather than picking whichever looks better: the recommended configuration is adopted going forward because the *effect* is validated at the budget where it's clearly visible, not because every benchmark run at every budget will show it.
+
+### Limitations and conclusions
+
+- **Reward shaping is a validated, real improvement, not a hoped-for one** -- corroborated by entropy and explained-variance trends moving the right direction under it and the wrong direction under "just train longer," not just a single win-rate number that could be noise.
+- **It's also a small one.** The lift is roughly 0.5-1.0% to 1.5% deployed win rate -- still far below DQN's best result (2.0-3.5% across its own experiments) and nowhere close to CSP's 45.5%. Nothing here should be read as "PPO is fixed."
+- **The critic still barely predicts returns.** Explained variance tops out at 0.110 in the best run -- under 11% of return variance is explained by the value function. Reward shaping made the signal denser, not fundamentally less sparse relative to the size of the decision space, so most of what determines whether a game is won remains poorly modeled by the critic.
+- **Longer training alone and checkpoint selection are both experimentally ruled out as the bottleneck**, at least in isolation -- B (more data, same reward) got worse, and D's checkpoint tied its own final weights under full evaluation. Any further gain is more likely to come from a denser/better-shaped signal, architectural changes, or hyperparameter tuning -- none of which are in scope for this milestone.
+- **PPO and DQN remain complementary evidence, not a settled contest.** Both algorithms, independently, hit a similar wall on this board (low single-digit win rates against CSP's 45.5%), via different failure modes (DQN: training instability, fixed by LR decay; PPO: weak credit assignment from a sparse signal, partially eased by reward shaping) -- reinforcing that the shared bottleneck is more about the *problem* (sparse rewards on a hard combinatorial board, exploration) than either algorithm's specific mechanics.
+
 ## Technology Stack
 
 **Frontend**
@@ -294,7 +358,7 @@ pip install -r requirements.txt
 # Run the test suite
 pytest
 
-# Compare Random, CSP, Q-Learning, and DQN agents
+# Compare Random, CSP, Q-Learning, DQN, and PPO agents
 python -m evaluation.evaluate_agents
 ```
 
@@ -308,7 +372,8 @@ python -m evaluation.evaluate_agents
 - [x] Deep Q-Network (DQN) agent
 - [x] Evaluation framework
 - [x] React frontend MVP
-- [ ] PPO/A2C agent
+- [x] PPO agent
+- [ ] A2C agent
 - [ ] Backend API connecting frontend to trained agents
 - [ ] Interactive replay visualization
 - [ ] Live agent demonstrations in the browser

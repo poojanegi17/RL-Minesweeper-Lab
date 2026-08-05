@@ -78,10 +78,30 @@ def main() -> None:
         num_episodes=NUM_EPISODES,
     )
 
+    # Recommended PPO configuration, per the PPO improvement experiments
+    # (see README): shaped reward (the one validated, real improvement) and
+    # best-checkpoint deployment (a no-cost safety net -- see README for why
+    # it didn't move the needle in that round, but is kept regardless).
+    # reward_mode="shaped" only affects the *training* env; a separate
+    # env is used for training vs. the shared `env` above so PPO's own
+    # training rewards don't leak a different reward scale into other
+    # agents' shared env/RNG stream, and evaluation below still runs on the
+    # shared default-reward `env` for a fair comparison against every other
+    # agent's numbers.
+    ppo_train_env = MinesweeperEnv(rows=ROWS, cols=COLS, num_mines=NUM_MINES, seed=SEED, reward_mode="shaped")
     ppo_agent = PPOAgent(rows=ROWS, cols=COLS, seed=SEED)
-    ppo_history = ppo_agent.train(env, episodes=PPO_TRAIN_EPISODES)
+    ppo_checkpoint_dir = Path(RESULTS_DIR) / "checkpoints_ppo_evaluate_agents"
+    ppo_history = ppo_agent.train(
+        ppo_train_env, episodes=PPO_TRAIN_EPISODES, checkpoint_dir=ppo_checkpoint_dir
+    )
     save_history_json(ppo_history, Path(RESULTS_DIR) / "ppo_evaluate_agents_history.json")
     save_history_csv(ppo_history, Path(RESULTS_DIR) / "ppo_evaluate_agents_history.csv")
+
+    ppo_best_policy_path = ppo_checkpoint_dir / "best_policy.pt"
+    ppo_used_checkpoint = "final in-memory weights (no checkpoint improved during training)"
+    if ppo_best_policy_path.exists():
+        ppo_agent.load_checkpoint(ppo_best_policy_path)
+        ppo_used_checkpoint = "best_policy.pt"
 
     ppo_results = evaluate_agent(
         env,
@@ -92,7 +112,7 @@ def main() -> None:
     print(f"Minesweeper {ROWS}x{COLS}, {NUM_MINES} mines, {NUM_EPISODES} episodes each")
     print(f"(Q-Learning trained for {Q_TRAIN_EPISODES} episodes, {len(q_agent.q_table)} states learned)")
     print(f"(DQN trained for {DQN_TRAIN_EPISODES} episodes, evaluated using {used_checkpoint})")
-    print(f"(PPO trained for {PPO_TRAIN_EPISODES} episodes)\n")
+    print(f"(PPO trained for {PPO_TRAIN_EPISODES} episodes with shaped reward, evaluated using {ppo_used_checkpoint})\n")
     _print_results("Random Agent", random_results)
     _print_results("CSP Agent", csp_results)
     _print_results("Q-Learning Agent", q_results)
