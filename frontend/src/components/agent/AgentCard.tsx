@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { AgentStatusBadge } from "@/components/agent/AgentStatusBadge";
 import { AGENT_ICONS } from "@/components/agent/agentIcons";
@@ -27,7 +28,10 @@ export function AgentCard({ agent }: AgentCardProps) {
           >
             <Icon className="h-4 w-4" />
           </span>
-          <AgentStatusBadge status={agent.status} />
+          <div className="flex items-center gap-1.5">
+            {agent.type && <Badge variant="outline">{agent.type.replace(/_/g, " ")}</Badge>}
+            <AgentStatusBadge status={agent.status} />
+          </div>
         </div>
 
         <div className="flex-1">

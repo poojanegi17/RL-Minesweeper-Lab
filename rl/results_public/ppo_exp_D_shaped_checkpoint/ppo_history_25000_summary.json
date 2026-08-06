@@ -1,0 +1,28 @@
+{
+  "episodes": 25000,
+  "reward_mode": "shaped",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_epsilon": 0.2,
+  "entropy_coef": 0.01,
+  "value_coef": 0.5,
+  "rollout_length": 256,
+  "ppo_epochs": 4,
+  "batch_size": 64,
+  "checkpoint_every": 2500,
+  "used_checkpoint": "best_policy.pt",
+  "best_checkpoint_metadata": {
+    "episode": 15000,
+    "win_rate": 0.04,
+    "average_reward": -9.659999999999998,
+    "average_episode_length": 3.68,
+    "timestamp": "2026-08-05T05:29:40.389052+00:00"
+  },
+  "train_seconds": 81.8,
+  "eval_episodes": 200,
+  "win_rate": 0.015,
+  "avg_episode_length": 3.905,
+  "avg_reward": -6.795,
+  "failures": 197
+}

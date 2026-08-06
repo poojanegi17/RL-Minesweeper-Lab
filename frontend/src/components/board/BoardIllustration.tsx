@@ -21,7 +21,10 @@ const BOARD: IllustrationCell[][] = [
   [hidden, hidden, hidden, hidden, hidden, hidden, hidden, hidden],
 ];
 
-const NUMBER_COLORS: Record<number, string> = {
+// Exported so any other board renderer (e.g. ReplayBoard) uses the exact
+// same clue-number palette rather than a re-picked one -- see
+// components/replay/ReplayBoard.tsx.
+export const NUMBER_COLORS: Record<number, string> = {
   1: "text-blue-500",
   2: "text-emerald-500",
   3: "text-red-500",

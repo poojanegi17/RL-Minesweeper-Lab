@@ -13,6 +13,12 @@ dist
 dist-ssr
 *.local
 
+# Env files -- may hold per-environment/local overrides; .env.example is the
+# committed template instead (see frontend/.env.example)
+.env
+.env.*
+!.env.example
+
 # Python
 __pycache__/
 *.pyc
@@ -21,7 +27,15 @@ __pycache__/
 .venv/
 venv/
 
-# RL experiment output
+# Full local RL training output -- checkpoints, CSVs, every raw dump from
+# every run. Large and not deployment-safe, so it stays local-only.
+#
+# rl/results_public/ is NOT ignored (no rule matches it): it's the small,
+# deployment-safe subset of this data (experiment summaries, chart metric
+# histories, replay JSON -- no checkpoints, no CSVs) that the deployed
+# backend actually reads by default. See backend/app/config.py and
+# backend/README.md for how it's produced and how to point the backend at a
+# different directory instead.
 rl/results/
 
 # Editor directories and files

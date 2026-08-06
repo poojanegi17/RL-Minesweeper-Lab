@@ -1,0 +1,35 @@
+{
+  "episodes": 25000,
+  "lr": 0.0001,
+  "lr_schedule": [
+    [
+      0,
+      0.0001
+    ],
+    [
+      10000,
+      5e-05
+    ],
+    [
+      20000,
+      1e-05
+    ]
+  ],
+  "batch_size": 64,
+  "target_update_every": 25,
+  "network_size": "default",
+  "checkpoint_every": 2500,
+  "used_checkpoint": "best_model.pt",
+  "best_checkpoint_metadata": {
+    "episode": 22500,
+    "win_rate": 0.06,
+    "average_reward": -4.96,
+    "timestamp": "2026-08-05T04:27:21.910586+00:00"
+  },
+  "train_seconds": 572.3,
+  "eval_episodes": 200,
+  "win_rate": 0.02,
+  "avg_episode_length": 4.6,
+  "avg_reward": -6.0,
+  "failures": 196
+}

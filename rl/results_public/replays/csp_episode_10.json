@@ -1,0 +1,847 @@
+{
+  "id": "csp_episode_10",
+  "agent": "CSP",
+  "experiment_id": null,
+  "board_size": "5x5",
+  "mines": 5,
+  "seed": 51,
+  "episode_number": 10,
+  "generated_at": "2026-08-05T09:24:12.853724+00:00",
+  "initial_board": [
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          4,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 2,
+        "col": 2
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.2,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (2, 2)."
+      }
+    },
+    {
+      "step": 2,
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          4,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 2
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.20833333333333334,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (0, 2)."
+      }
+    },
+    {
+      "step": 3,
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          4,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 4,
+        "col": 0
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.21739130434782608,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (4, 0)."
+      }
+    },
+    {
+      "step": 4,
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          -1,
+          4,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 2,
+        "col": 0
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.22727272727272727,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (2, 0)."
+      }
+    },
+    {
+      "step": 5,
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          -1,
+          4,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          2,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 4,
+        "col": 2
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.23809523809523808,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (4, 2)."
+      }
+    },
+    {
+      "step": 6,
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          -1,
+          4,
+          3,
+          1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          -1,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 3,
+        "col": 4
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.25,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (3, 4)."
+      }
+    },
+    {
+      "step": 7,
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          -1,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          -1,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 3,
+        "col": 0
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (3, 0) is safe."
+      }
+    },
+    {
+      "step": 8,
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          4,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          -1,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 2,
+        "col": 1
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (2, 1) is safe."
+      }
+    },
+    {
+      "step": 9,
+      "board_state": [
+        [
+          -1,
+          2,
+          2,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          4,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          -1,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 1
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.25,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (0, 1)."
+      }
+    },
+    {
+      "step": 10,
+      "board_state": [
+        [
+          -1,
+          2,
+          2,
+          -1,
+          1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          4,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          -1,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 4
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.3333333333333333,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (0, 4)."
+      }
+    },
+    {
+      "step": 11,
+      "board_state": [
+        [
+          1,
+          2,
+          2,
+          -1,
+          1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          4,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          -1,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 0
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (0, 0) is safe."
+      }
+    },
+    {
+      "step": 12,
+      "board_state": [
+        [
+          1,
+          2,
+          2,
+          -1,
+          1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          4,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          2,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 4,
+        "col": 1
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (4, 1) is safe."
+      }
+    },
+    {
+      "step": 13,
+      "board_state": [
+        [
+          1,
+          2,
+          2,
+          2,
+          1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          4,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          2,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 3
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (0, 3) is safe."
+      }
+    },
+    {
+      "step": 14,
+      "board_state": [
+        [
+          1,
+          2,
+          2,
+          2,
+          1
+        ],
+        [
+          -1,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          2,
+          4,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          2,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 1,
+        "col": 1
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.5,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (1, 1)."
+      }
+    },
+    {
+      "step": 15,
+      "board_state": [
+        [
+          1,
+          2,
+          2,
+          2,
+          1
+        ],
+        [
+          -1,
+          2,
+          -1,
+          -1,
+          1
+        ],
+        [
+          2,
+          4,
+          4,
+          3,
+          1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          1,
+          0
+        ],
+        [
+          1,
+          2,
+          2,
+          1,
+          0
+        ]
+      ],
+      "action": {
+        "row": 1,
+        "col": 4
+      },
+      "reward": 10.0,
+      "done": true,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (1, 4) is safe."
+      }
+    }
+  ],
+  "won": true,
+  "total_reward": 24.0,
+  "steps_taken": 15
+}

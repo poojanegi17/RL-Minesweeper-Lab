@@ -1,0 +1,11 @@
+{
+  "episodes": 50000,
+  "lr": 0.0001,
+  "batch_size": 64,
+  "target_update_every": 25,
+  "train_seconds": 1400.0,
+  "eval_episodes": 200,
+  "win_rate": 0.0,
+  "avg_episode_length": 3.965,
+  "failures": 200
+}

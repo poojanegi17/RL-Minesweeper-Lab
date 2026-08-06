@@ -4,7 +4,8 @@ import { Layout } from "@/components/layout/Layout";
 import { Home } from "@/pages/Home";
 import { Agents } from "@/pages/Agents";
 import { AgentDetail } from "@/pages/AgentDetail";
-import { Compare } from "@/pages/Compare";
+import { Research } from "@/pages/Research";
+import { Replay } from "@/pages/Replay";
 import { About } from "@/pages/About";
 import { NotFound } from "@/pages/NotFound";
 
@@ -25,7 +26,9 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/agents" element={<Agents />} />
             <Route path="/agents/:agentId" element={<AgentDetail />} />
-            <Route path="/compare" element={<Compare />} />
+            <Route path="/research" element={<Research />} />
+            <Route path="/research/:agentSlug" element={<Research />} />
+            <Route path="/replay" element={<Replay />} />
             <Route path="/about" element={<About />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

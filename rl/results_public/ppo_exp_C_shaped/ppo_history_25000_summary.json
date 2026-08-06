@@ -1,0 +1,22 @@
+{
+  "episodes": 25000,
+  "reward_mode": "shaped",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_epsilon": 0.2,
+  "entropy_coef": 0.01,
+  "value_coef": 0.5,
+  "rollout_length": 256,
+  "ppo_epochs": 4,
+  "batch_size": 64,
+  "checkpoint_every": 2500,
+  "used_checkpoint": "final_in_memory_weights",
+  "best_checkpoint_metadata": null,
+  "train_seconds": 79.3,
+  "eval_episodes": 200,
+  "win_rate": 0.015,
+  "avg_episode_length": 3.945,
+  "avg_reward": -6.755,
+  "failures": 197
+}

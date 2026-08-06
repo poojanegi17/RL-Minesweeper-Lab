@@ -1,0 +1,17 @@
+{
+  "episodes": 25000,
+  "lr": 0.0001,
+  "lr_schedule": null,
+  "batch_size": 64,
+  "target_update_every": 25,
+  "network_size": "small",
+  "checkpoint_every": 2500,
+  "used_checkpoint": "final_in_memory_weights",
+  "best_checkpoint_metadata": null,
+  "train_seconds": 876.4,
+  "eval_episodes": 200,
+  "win_rate": 0.01,
+  "avg_episode_length": 3.545,
+  "avg_reward": -7.255,
+  "failures": 198
+}
