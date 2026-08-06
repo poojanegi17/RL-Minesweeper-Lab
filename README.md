@@ -15,7 +15,7 @@ leaderboard number.
 
 **Stack:** React · TypeScript · Tailwind CSS · FastAPI · PyTorch · Gymnasium
 
-🔗 **Live Demo:** _not yet deployed_ &nbsp;·&nbsp; 📦 **Repository:** [github.com/poojanegi17/RL-Minesweeper-Lab](https://github.com/poojanegi17/RL-Minesweeper-Lab)
+🔗 **Live Demo:** [rl-minesweeper-lab.vercel.app](https://rl-minesweeper-lab.vercel.app/) &nbsp;·&nbsp; 📦 **Repository:** [github.com/poojanegi17/RL-Minesweeper-Lab](https://github.com/poojanegi17/RL-Minesweeper-Lab)
 
 ```
  Human ──▶ Environment ──▶ Observation ──▶ Agent ──▶ Action ──▶ Reward ──▶ Learning
@@ -347,6 +347,8 @@ python -m evaluation.evaluate_agents    # compare all five agents
 
 ## 🚀 Deployment
 
+**This project is deployed** — frontend on Vercel ([rl-minesweeper-lab.vercel.app](https://rl-minesweeper-lab.vercel.app/)), backend on Render ([rl-minesweeper-lab.onrender.com](https://rl-minesweeper-lab.onrender.com)). The steps below reproduce that setup.
+
 **Frontend (Vercel or any static host)**
 
 ```bash
@@ -380,6 +382,14 @@ Two environment variables, both read by `app/config.py` via `pydantic-settings` 
 |---|---|---|
 | `MINESWEEPER_CORS_ORIGINS` | Origins allowed to call the API — defaults to `["http://localhost:5173"]` only | `MINESWEEPER_CORS_ORIGINS=["https://your-frontend.vercel.app"]` (JSON array string) |
 | `MINESWEEPER_RESULTS_DIR` | Override the results directory (e.g. to point at your full local `rl/results/` instead) | `MINESWEEPER_RESULTS_DIR=../rl/results` |
+
+**Don't set `MINESWEEPER_RESULTS_DIR` unless you actually need to override it.** An empty/blank
+value (e.g. adding the key in your host's dashboard with no value) is *not* the same as leaving
+it unset — pydantic-settings treats `""` as a real override, which resolves to the process's
+current working directory instead of the built-in `rl/results_public/` default, and every
+experiment/replay endpoint silently returns empty. If you ever see `/api/experiments` or
+`/api/replays` return `[]` despite `rl/results_public/` being committed, check for exactly this
+before anything else.
 
 **Before deploying:** set `MINESWEEPER_CORS_ORIGINS` to the real deployed frontend origin — the
 default only allows local dev, so the deployed frontend will get CORS errors until this is set.
