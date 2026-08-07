@@ -27,6 +27,10 @@ export interface LeaderboardEntry {
   win_rate: number | null;
   avg_episode_length: number | null;
   avg_reward: number | null;
-  source: "experiment_artifact" | "static_reference";
+  /** At the default beginner/standard board: "experiment_artifact" (read
+   * live from rl/results/) or "static_reference" (README-recorded, no
+   * artifact exists). At any other level/density: "board_result" (read from
+   * evaluate_board_config.py's output) or "not_trained" (no data yet). */
+  source: "experiment_artifact" | "static_reference" | "board_result" | "not_trained";
   experiment_id: string | null;
 }

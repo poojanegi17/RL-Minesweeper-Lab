@@ -56,17 +56,31 @@ export function AgentMetricsPanel({ experiment, metrics, leaderboardEntry }: Age
     );
   }
 
+  if (leaderboardEntry?.source === "not_trained") {
+    return (
+      <EmptyState
+        icon={Hourglass}
+        title="Not trained at this level yet"
+        description="No checkpoint has been trained for this agent at this board size/density yet."
+      />
+    );
+  }
+
   if (leaderboardEntry) {
+    const isBoardResult = leaderboardEntry.source === "board_result";
     const stats = [
       { label: "Win rate", value: formatPercent(leaderboardEntry.win_rate) },
       { label: "Avg. episode length", value: formatReward(leaderboardEntry.avg_episode_length) },
+      ...(leaderboardEntry.avg_reward != null ? [{ label: "Avg. reward", value: formatReward(leaderboardEntry.avg_reward) }] : []),
     ];
 
     return (
       <Card className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-medium tracking-wide text-text-muted uppercase">Reference figures</h3>
-          <Badge variant="outline">Reference</Badge>
+          <h3 className="text-xs font-medium tracking-wide text-text-muted uppercase">
+            {isBoardResult ? "Evaluation figures" : "Reference figures"}
+          </h3>
+          <Badge variant="outline">{isBoardResult ? "Evaluated" : "Reference"}</Badge>
         </div>
         <dl className="grid grid-cols-2 gap-6 sm:w-1/2">
           {stats.map((stat) => (
@@ -77,8 +91,9 @@ export function AgentMetricsPanel({ experiment, metrics, leaderboardEntry }: Age
           ))}
         </dl>
         <p className="text-xs text-text-muted">
-          This agent writes no per-episode training history -- these are the project's last-recorded figures, not a
-          live chart.
+          {isBoardResult
+            ? "This agent writes no per-episode training history at this board size -- these are real evaluation figures, just not a live training chart."
+            : "This agent writes no per-episode training history -- these are the project's last-recorded figures, not a live chart."}
         </p>
       </Card>
     );
