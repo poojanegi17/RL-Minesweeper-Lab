@@ -36,23 +36,17 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional, Tuple
 
 import torch
 
-from agents.csp_solver import CSPAgent
-from agents.dqn_agent import DQNAgent
-from agents.ppo_agent import PPOAgent
-from agents.random_agent import RandomAgent
 from environment.minesweeper_env import MinesweeperEnv
-from evaluation.replay import ReasoningFn, ReplayRecorder, build_replay, csp_reasoning, dqn_reasoning, ppo_reasoning
+from evaluation.agent_loading import AGENT_DISPLAY_NAMES, build_agent
+from evaluation.replay import ReplayRecorder, build_replay
 
 ROWS = 5
 COLS = 5
 NUM_MINES = 5
 SEED = 42
-
-AGENT_DISPLAY_NAMES = {"csp": "CSP", "dqn": "DQN", "ppo": "PPO", "random": "Random"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -73,81 +67,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--torch-threads", type=int, default=None, help="Cap CPU threads PyTorch uses.")
     return parser.parse_args()
-
-
-def _default_checkpoint_path(agent: str, results_dir: Path) -> Path:
-    if agent == "dqn":
-        return results_dir / "checkpoints_evaluate_agents" / "best_model.pt"
-    return results_dir / "checkpoints_ppo_evaluate_agents" / "best_policy.pt"
-
-
-def _experiment_checkpoint_path(agent: str, experiment_id: str, results_dir: Path) -> Path:
-    experiment_dir = results_dir / experiment_id
-    if not experiment_dir.is_dir():
-        raise FileNotFoundError(f"No experiment directory found at {experiment_dir}")
-
-    checkpoint_dirs = sorted(experiment_dir.glob("checkpoints_*"))
-    if not checkpoint_dirs:
-        raise FileNotFoundError(f"No checkpoints_* directory found under {experiment_dir}")
-    checkpoint_dir = checkpoint_dirs[0]
-
-    best_name = "best_model.pt" if agent == "dqn" else "best_policy.pt"
-    final_name = "final_model.pt" if agent == "dqn" else "final_policy.pt"
-    for name in (best_name, final_name):
-        candidate = checkpoint_dir / name
-        if candidate.exists():
-            return candidate
-    raise FileNotFoundError(f"No {best_name} or {final_name} found under {checkpoint_dir}")
-
-
-def _load_dqn_agent(checkpoint_path: Path, seed: int) -> DQNAgent:
-    raw = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    agent = DQNAgent(rows=raw["rows"], cols=raw["cols"], network_size=raw.get("network_size", "default"), seed=seed)
-    agent.load_checkpoint(checkpoint_path)
-    return agent
-
-
-def _load_ppo_agent(checkpoint_path: Path, seed: int) -> PPOAgent:
-    raw = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    agent = PPOAgent(rows=raw["rows"], cols=raw["cols"], seed=seed)
-    agent.load_checkpoint(checkpoint_path)
-    return agent
-
-
-def _build_agent(
-    agent_kind: str, seed: int, experiment_id: Optional[str], results_dir: Path
-) -> Tuple[Any, Callable[[Any], int], Optional[ReasoningFn], Optional[Callable[[], None]]]:
-    """Construct the agent plus its action_fn/reasoning_fn/on_episode_start, mirroring evaluate_agents.py's
-    per-agent wiring against the same generic recorder -- see evaluation.replay's module docstring."""
-    if agent_kind == "random":
-        agent = RandomAgent(seed=seed)
-        return agent, agent.select_action, None, None
-
-    if agent_kind == "csp":
-        agent = CSPAgent(rows=ROWS, cols=COLS, num_mines=NUM_MINES, seed=seed)
-        return agent, agent.choose_action, (lambda board, action: csp_reasoning(agent, board, action)), agent.reset
-
-    checkpoint_path = (
-        _experiment_checkpoint_path(agent_kind, experiment_id, results_dir)
-        if experiment_id is not None
-        else _default_checkpoint_path(agent_kind, results_dir)
-    )
-    if agent_kind == "dqn":
-        agent = _load_dqn_agent(checkpoint_path, seed)
-        return (
-            agent,
-            lambda obs: agent.select_action(obs, explore=False),
-            (lambda board, action: dqn_reasoning(agent, board, action)),
-            None,
-        )
-
-    agent = _load_ppo_agent(checkpoint_path, seed)
-    return (
-        agent,
-        lambda obs: agent.select_action(obs, explore=False),
-        (lambda board, action: ppo_reasoning(agent, board, action)),
-        None,
-    )
 
 
 def _next_episode_number(output_dir: Path, agent_slug: str) -> int:
@@ -175,8 +94,8 @@ def main() -> None:
     agent_display_name = AGENT_DISPLAY_NAMES[agent_slug]
     experiment_id_for_checkpoint = args.experiment_id if agent_slug in ("dqn", "ppo") else None
 
-    agent, action_fn, reasoning_fn, on_episode_start = _build_agent(
-        agent_slug, args.seed, experiment_id_for_checkpoint, results_dir
+    agent, action_fn, reasoning_fn, on_episode_start = build_agent(
+        agent_slug, args.seed, experiment_id_for_checkpoint, results_dir, rows=ROWS, cols=COLS, num_mines=NUM_MINES
     )
 
     env = MinesweeperEnv(rows=ROWS, cols=COLS, num_mines=NUM_MINES)

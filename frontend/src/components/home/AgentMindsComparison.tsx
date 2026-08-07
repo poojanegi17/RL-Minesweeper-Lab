@@ -1,137 +1,151 @@
-import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { BarChart3, Dices, Network, PieChart, PlayCircle, type LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Trophy } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ReplayBoard } from "@/components/replay/ReplayBoard";
-import { AGENT_ICONS } from "@/components/agent/agentIcons";
-import { AGENT_STYLES } from "@/data/types";
+import { ReplayControls } from "@/components/replay/ReplayControls";
+import { RaceBoardTile } from "@/components/race/RaceBoardTile";
+import { getRace, getRaces } from "@/api/races";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { agentKindFromName } from "@/lib/agentAdapters";
-import { useAgentReplay } from "@/hooks/useAgentReplay";
-import { describeDecisionReason } from "@/lib/reasoning";
-import { cn } from "@/lib/cn";
 
-const AGENTS = ["CSP", "DQN", "PPO", "Random"];
-
-/** A small per-algorithm visual motif -- CSP's constraint graph, DQN's value
- * estimate, PPO's action-probability distribution, Random's uniform draw --
- * purely decorative, so each agent's snapshot card *feels* like its own
- * approach instead of four identical layouts with a different label. */
-const AGENT_MOTIFS: Record<string, { icon: LucideIcon; label: string }> = {
-  CSP: { icon: Network, label: "Constraint graph" },
-  DQN: { icon: BarChart3, label: "Value estimate" },
-  PPO: { icon: PieChart, label: "Action distribution" },
-  Random: { icon: Dices, label: "Uniform draw" },
-};
+const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
 
 /**
- * "Different minds, same game" -- pick an agent and see one real recorded
- * moment: its board, the cell it chose, and why. A single snapshot, not a
- * stepper (`AIComparisonBoard`, above, already owns full playback) -- built
- * entirely from `useAgentReplay` and `describeDecisionReason`, the same
- * reused hook/helper every other agent-reasoning view on this site uses.
+ * "Different minds, same game" -- Random, CSP, DQN, and PPO all playing the
+ * exact same seeded board, side by side, with real play/pause/speed
+ * transport controls. Every episode here is pre-recorded (see
+ * `rl/evaluation/generate_race.py`), not live inference -- the backend stays
+ * a read-only static-artifact server. A single shared `stepIndex` drives all
+ * four boards, so an agent that finishes early just holds its final
+ * board/outcome while the others keep going -- a real competitive
+ * comparison on identical mines, not four independently-sampled episodes.
  */
 export function AgentMindsComparison() {
-  const [agent, setAgent] = useState("CSP");
-  const { replay, status, error, isSlow, retry } = useAgentReplay(agent);
+  const { data: races, status: listStatus, error: listError, isSlow: listSlow, retry: retryList } = useApiQuery(getRaces, []);
 
-  const step = useMemo(() => {
-    if (!replay) return null;
-    return replay.timeline.find((s) => s.reasoning !== null) ?? replay.timeline[0] ?? null;
-  }, [replay]);
+  const [raceId, setRaceId] = useState<string | null>(null);
 
-  const reason = step ? describeDecisionReason(agent, step.reasoning) : null;
-  const isLastStep = replay && step ? replay.timeline.indexOf(step) === replay.timeline.length - 1 : false;
-  const mineHit = isLastStep && replay ? !replay.won : false;
-  const motif = AGENT_MOTIFS[agent];
+  useEffect(() => {
+    if (!races || races.length === 0) return;
+    if (raceId === null || !races.some((r) => r.id === raceId)) {
+      setRaceId(races[0].id);
+    }
+  }, [races, raceId]);
+
+  const {
+    data: race,
+    status: raceStatus,
+    error: raceError,
+    isSlow: raceSlow,
+    retry: retryRace,
+  } = useApiQuery(() => (raceId ? getRace(raceId) : Promise.resolve(null)), [raceId]);
+
+  const [stepIndex, setStepIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+
+  useEffect(() => {
+    setStepIndex(0);
+    setIsPlaying(false);
+  }, [raceId]);
+
+  const agentEntries = race ? Object.entries(race.agents) : [];
+  const totalSteps = agentEntries.length > 0 ? Math.max(...agentEntries.map(([, result]) => result.steps_taken)) : 0;
+
+  useEffect(() => {
+    if (!isPlaying || !race) return;
+    if (stepIndex >= totalSteps) {
+      setIsPlaying(false);
+      return;
+    }
+    const timer = setTimeout(() => setStepIndex((i) => Math.min(i + 1, totalSteps)), SPEED_MS[speed]);
+    return () => clearTimeout(timer);
+  }, [isPlaying, stepIndex, totalSteps, speed, race]);
 
   return (
     <div className="flex flex-col gap-6">
       <p className="max-w-2xl text-sm text-text-muted">
-        Each agent played its own independent episode -- not a shared board, but the same kind of decision every
-        time.
+        Same board, same mines, four different reasoning processes -- watch Random, CSP, DQN, and PPO each try to
+        survive the identical layout.
       </p>
 
-      <div className="flex flex-wrap justify-center gap-2">
-        {AGENTS.map((name) => {
-          const kind = agentKindFromName(name);
-          const style = AGENT_STYLES[kind];
-          const Icon = AGENT_ICONS[kind];
-          const active = agent === name;
-          return (
-            <button
-              key={name}
-              type="button"
-              onClick={() => setAgent(name)}
-              aria-pressed={active}
-              className={cn(
-                "relative flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                active ? "border-primary text-heading" : "border-border bg-surface text-text-muted hover:text-text",
-              )}
-            >
-              {active && (
-                <motion.span
-                  layoutId="agent-minds-active-pill"
-                  className="absolute inset-0 -z-10 rounded-full bg-primary/10"
-                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                />
-              )}
-              <span className={cn("flex h-5 w-5 items-center justify-center", style.text)}>
-                <Icon className="h-4 w-4" />
-              </span>
-              {name}
-            </button>
-          );
-        })}
-      </div>
-
-      {status === "loading" && (
-        <div className="flex flex-col gap-3">
+      {listStatus === "loading" && (
+        <div className="flex flex-col gap-3" aria-label="Loading races">
           <Skeleton className="h-64 w-full" />
-          {isSlow && <ColdStartNotice />}
+          {listSlow && <ColdStartNotice />}
         </div>
       )}
-      {status === "error" && error && (
-        <ApiErrorState error={error} onRetry={retry} title="Couldn't load this agent's replay" />
-      )}
-      {status === "success" && !replay && (
+
+      {listStatus === "error" && listError && <ApiErrorState error={listError} onRetry={retryList} title="Couldn't load races" />}
+
+      {listStatus === "success" && races && races.length === 0 && (
         <EmptyState
-          icon={PlayCircle}
-          title="No recorded episodes yet"
-          description={`No replay has been generated for ${agent} yet.`}
+          icon={Trophy}
+          title="No races generated yet"
+          description="Run python -m evaluation.generate_race --episodes N to create some."
         />
       )}
-      <AnimatePresence mode="wait">
-        {status === "success" && replay && step && (
-          <motion.div
-            key={agent}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-          >
-            <Card className="relative flex flex-col items-center gap-6 overflow-hidden sm:flex-row sm:items-start sm:justify-center">
-              {motif && (
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full border border-border bg-surface-hover/60 px-2 py-1 text-[10px] tracking-wide text-text-muted uppercase">
-                  <motif.icon className="h-3 w-3" />
-                  {motif.label}
-                </div>
-              )}
-              <ReplayBoard board={step.board_state} highlightedCell={step.action} mineHit={mineHit} />
-              <div className="flex flex-col gap-2 text-center sm:text-left">
-                <p className="text-xs font-medium tracking-wide text-text-muted uppercase">{agent}'s move</p>
-                <p className="text-sm text-text">
-                  Selected cell: <span className="font-mono">({step.action.row}, {step.action.col})</span>
-                </p>
-                <p className="text-sm text-text-muted">{reason ? `Reason: ${reason}` : "No reasoning recorded for this step."}</p>
+
+      {listStatus === "success" && races && races.length > 0 && (
+        <>
+          {races.length > 1 && (
+            <label className="flex w-full max-w-xs flex-col gap-1.5 text-xs text-text-muted">
+              Board
+              <Select value={raceId ?? ""} onChange={(e) => setRaceId(e.target.value)}>
+                {races.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.id} (seed {r.seed})
+                  </option>
+                ))}
+              </Select>
+            </label>
+          )}
+
+          {raceStatus === "loading" && (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-64 w-full" />
+              {raceSlow && <ColdStartNotice />}
+            </div>
+          )}
+          {raceStatus === "error" && raceError && (
+            <ApiErrorState error={raceError} onRetry={retryRace} title="Couldn't load this board" />
+          )}
+
+          {raceStatus === "success" && race && (
+            <div className="flex flex-col gap-4">
+              <Card>
+                <ReplayControls
+                  stepIndex={stepIndex}
+                  totalSteps={totalSteps}
+                  isPlaying={isPlaying}
+                  speed={speed}
+                  onPrevious={() => setStepIndex((i) => Math.max(0, i - 1))}
+                  onNext={() => setStepIndex((i) => Math.min(totalSteps, i + 1))}
+                  onTogglePlay={() => setIsPlaying((p) => !p)}
+                  onSpeedChange={setSpeed}
+                />
+              </Card>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {agentEntries.map(([agentName, result]) => (
+                  <RaceBoardTile
+                    key={agentName}
+                    agentName={agentName}
+                    kind={agentKindFromName(agentName)}
+                    result={result}
+                    initialBoard={race.initial_board}
+                    stepIndex={stepIndex}
+                  />
+                ))}
               </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.race_loader import RaceLoader, get_race_loader
 from app.services.replay_loader import ReplayLoader, get_replay_loader
 from app.services.results_loader import ResultsLoader, get_results_loader
 
@@ -147,6 +148,7 @@ def results_dir(tmp_path: Path) -> Path:
     (tmp_path / "misc_run_history.json").write_text(json.dumps(unnamed_history))
 
     _write_replays(tmp_path / "replays")
+    _write_races(tmp_path / "races")
 
     return tmp_path
 
@@ -202,11 +204,53 @@ def _write_replays(replays_dir: Path) -> None:
     (replays_dir / "incomplete_episode.json").write_text(json.dumps({"id": "incomplete_episode", "agent": "DQN"}))
 
 
+def _write_races(races_dir: Path) -> None:
+    races_dir.mkdir(parents=True)
+    race = {
+        "id": "race_1",
+        "seed": 1,
+        "board_size": "3x3",
+        "mines": 1,
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "initial_board": [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]],
+        "agents": {
+            "Random": {
+                "experiment_id": None,
+                "steps": [{"step": 1, "board_state": [[0, -1, -1], [-1, -1, -1], [-1, -1, -1]], "action": {"row": 0, "col": 0}, "reward": 1.0, "done": False, "reasoning": None}],
+                "won": False,
+                "total_reward": -9.0,
+                "steps_taken": 1,
+            },
+            "CSP": {
+                "experiment_id": None,
+                "steps": [{"step": 1, "board_state": [[0, -1, -1], [-1, -1, -1], [-1, -1, -1]], "action": {"row": 0, "col": 0}, "reward": 1.0, "done": False, "reasoning": {"deduction_type": "safe", "constraint_cells": None, "remaining_mines": 0, "mine_probability": None, "inference": "Cell (0, 0) is safe."}}],
+                "won": True,
+                "total_reward": 11.0,
+                "steps_taken": 1,
+            },
+            "DQN": {
+                "experiment_id": "exp_test_dqn",
+                "steps": [{"step": 1, "board_state": [[0, -1, -1], [-1, -1, -1], [-1, -1, -1]], "action": {"row": 0, "col": 0}, "reward": 1.0, "done": False, "reasoning": {"q_value": 0.5}}],
+                "won": False,
+                "total_reward": -9.0,
+                "steps_taken": 1,
+            },
+        },
+    }
+    (races_dir / "race_1.json").write_text(json.dumps(race))
+
+    # Malformed: missing required fields (e.g. no "agents").
+    (races_dir / "incomplete_race.json").write_text(json.dumps({"id": "incomplete_race", "seed": 2}))
+    # Malformed: invalid JSON.
+    (races_dir / "broken_race.json").write_text("{not valid json")
+
+
 @pytest.fixture()
 def client(results_dir: Path) -> TestClient:
-    """A TestClient wired to `results_dir` (and its `replays/` subfolder) instead of the real rl/results/."""
+    """A TestClient wired to `results_dir` (and its `replays/`/`races/` subfolders) instead of the real rl/results/."""
     app.dependency_overrides[get_results_loader] = lambda: ResultsLoader(results_dir)
     app.dependency_overrides[get_replay_loader] = lambda: ReplayLoader(results_dir / "replays")
+    app.dependency_overrides[get_race_loader] = lambda: RaceLoader(results_dir / "races")
     try:
         yield TestClient(app)
     finally:
@@ -215,10 +259,11 @@ def client(results_dir: Path) -> TestClient:
 
 @pytest.fixture()
 def empty_client(tmp_path: Path) -> TestClient:
-    """A TestClient wired to a results directory (and replays subfolder) that don't exist on disk."""
+    """A TestClient wired to a results directory (and replays/races subfolders) that don't exist on disk."""
     missing_dir = tmp_path / "does_not_exist"
     app.dependency_overrides[get_results_loader] = lambda: ResultsLoader(missing_dir)
     app.dependency_overrides[get_replay_loader] = lambda: ReplayLoader(missing_dir / "replays")
+    app.dependency_overrides[get_race_loader] = lambda: RaceLoader(missing_dir / "races")
     try:
         yield TestClient(app)
     finally:

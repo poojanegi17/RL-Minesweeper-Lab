@@ -1,0 +1,1327 @@
+{
+  "id": "race_42",
+  "seed": 42,
+  "board_size": "5x5",
+  "mines": 5,
+  "generated_at": "2026-08-07T13:21:58.460290+00:00",
+  "initial_board": [
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "agents": {
+    "Random": {
+      "experiment_id": null,
+      "steps": [
+        {
+          "step": 1,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 2,
+            "col": 1
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": null
+        },
+        {
+          "step": 2,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              1,
+              -1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 4,
+            "col": 1
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": null
+        },
+        {
+          "step": 3,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              1,
+              -1,
+              -1,
+              1
+            ]
+          ],
+          "action": {
+            "row": 4,
+            "col": 4
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": null
+        },
+        {
+          "step": 4,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              0,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              1,
+              -1,
+              -1,
+              1
+            ]
+          ],
+          "action": {
+            "row": 0,
+            "col": 3
+          },
+          "reward": -10.0,
+          "done": true,
+          "reasoning": null
+        }
+      ],
+      "won": false,
+      "total_reward": -7.0,
+      "steps_taken": 4
+    },
+    "CSP": {
+      "experiment_id": null,
+      "steps": [
+        {
+          "step": 1,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 2,
+            "col": 1
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "deduction_type": "probability_guess",
+            "constraint_cells": null,
+            "remaining_mines": null,
+            "mine_probability": 0.2,
+            "inference": "No safe cell deduced; guessing the lowest mine-probability cell (2, 1)."
+          }
+        },
+        {
+          "step": 2,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 4,
+            "col": 2
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "deduction_type": "safe",
+            "constraint_cells": null,
+            "remaining_mines": 0,
+            "mine_probability": null,
+            "inference": "Cell (4, 2) is safe."
+          }
+        },
+        {
+          "step": 3,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 2,
+            "col": 3
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "deduction_type": "safe",
+            "constraint_cells": null,
+            "remaining_mines": 0,
+            "mine_probability": null,
+            "inference": "Cell (2, 3) is safe."
+          }
+        },
+        {
+          "step": 4,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              2
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 1,
+            "col": 4
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "deduction_type": "safe",
+            "constraint_cells": null,
+            "remaining_mines": 0,
+            "mine_probability": null,
+            "inference": "Cell (1, 4) is safe."
+          }
+        },
+        {
+          "step": 5,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              2
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 3,
+            "col": 4
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "deduction_type": "safe",
+            "constraint_cells": null,
+            "remaining_mines": 0,
+            "mine_probability": null,
+            "inference": "Cell (3, 4) is safe."
+          }
+        },
+        {
+          "step": 6,
+          "board_state": [
+            [
+              -1,
+              -1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              2
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 0,
+            "col": 2
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "deduction_type": "safe",
+            "constraint_cells": null,
+            "remaining_mines": 0,
+            "mine_probability": null,
+            "inference": "Cell (0, 2) is safe."
+          }
+        },
+        {
+          "step": 7,
+          "board_state": [
+            [
+              -1,
+              -1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              2
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 2,
+            "col": 4
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "deduction_type": "safe",
+            "constraint_cells": null,
+            "remaining_mines": 0,
+            "mine_probability": null,
+            "inference": "Cell (2, 4) is safe."
+          }
+        },
+        {
+          "step": 8,
+          "board_state": [
+            [
+              -1,
+              -1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              2
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              0,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 4,
+            "col": 3
+          },
+          "reward": -10.0,
+          "done": true,
+          "reasoning": {
+            "deduction_type": "probability_guess",
+            "constraint_cells": null,
+            "remaining_mines": null,
+            "mine_probability": 0.3333333333333333,
+            "inference": "No safe cell deduced; guessing the lowest mine-probability cell (4, 3)."
+          }
+        }
+      ],
+      "won": false,
+      "total_reward": -3.0,
+      "steps_taken": 8
+    },
+    "DQN": {
+      "experiment_id": null,
+      "steps": [
+        {
+          "step": 1,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 3,
+            "col": 2
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "q_value": 5.694305896759033
+          }
+        },
+        {
+          "step": 2,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 2,
+            "col": 2
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "q_value": 5.438385963439941
+          }
+        },
+        {
+          "step": 3,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 2,
+            "col": 1
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "q_value": 5.46016263961792
+          }
+        },
+        {
+          "step": 4,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 4,
+            "col": 2
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "q_value": 1.0819956064224243
+          }
+        },
+        {
+          "step": 5,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              -1,
+              1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 2,
+            "col": 4
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "q_value": 0.013356208801269531
+          }
+        },
+        {
+          "step": 6,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 2,
+            "col": 3
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "q_value": 0.21936550736427307
+          }
+        },
+        {
+          "step": 7,
+          "board_state": [
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              1
+            ],
+            [
+              1,
+              1,
+              1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              0,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 4,
+            "col": 3
+          },
+          "reward": -10.0,
+          "done": true,
+          "reasoning": {
+            "q_value": -0.39253920316696167
+          }
+        }
+      ],
+      "won": false,
+      "total_reward": -4.0,
+      "steps_taken": 7
+    },
+    "PPO": {
+      "experiment_id": null,
+      "steps": [
+        {
+          "step": 1,
+          "board_state": [
+            [
+              -1,
+              -1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 0,
+            "col": 2
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "action_probability": 0.154579758644104
+          }
+        },
+        {
+          "step": 2,
+          "board_state": [
+            [
+              -1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 0,
+            "col": 1
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "action_probability": 0.1585090309381485
+          }
+        },
+        {
+          "step": 3,
+          "board_state": [
+            [
+              -1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 4,
+            "col": 2
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "action_probability": 0.16010664403438568
+          }
+        },
+        {
+          "step": 4,
+          "board_state": [
+            [
+              -1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 3,
+            "col": 3
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "action_probability": 0.12146204710006714
+          }
+        },
+        {
+          "step": 5,
+          "board_state": [
+            [
+              -1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              -1,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 1,
+            "col": 1
+          },
+          "reward": 1.0,
+          "done": false,
+          "reasoning": {
+            "action_probability": 0.11760077625513077
+          }
+        },
+        {
+          "step": 6,
+          "board_state": [
+            [
+              -1,
+              1,
+              2,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              -1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              -1,
+              1,
+              -1
+            ],
+            [
+              -1,
+              -1,
+              1,
+              0,
+              -1
+            ]
+          ],
+          "action": {
+            "row": 4,
+            "col": 3
+          },
+          "reward": -10.0,
+          "done": true,
+          "reasoning": {
+            "action_probability": 0.12119362503290176
+          }
+        }
+      ],
+      "won": false,
+      "total_reward": -5.0,
+      "steps_taken": 6
+    }
+  }
+}

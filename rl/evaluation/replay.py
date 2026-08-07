@@ -237,3 +237,45 @@ def build_replay(
         "total_reward": episode["total_reward"],
         "steps_taken": episode["steps_taken"],
     }
+
+
+def build_race(
+    *,
+    seed: int,
+    board_size: str,
+    mines: int,
+    generated_at: str,
+    agent_episodes: Dict[str, Tuple[Optional[str], Dict[str, Any]]],
+) -> Dict[str, Any]:
+    """Bundle several agents' episodes -- recorded on the *same* seed, so they share an
+    identical mine layout (see `environment.minesweeper.Minesweeper`: placement depends
+    only on the seed) -- into one race artifact.
+
+    Args:
+        seed: The shared seed every episode in `agent_episodes` was recorded with.
+        agent_episodes: Maps display agent name (e.g. "DQN") to
+            `(experiment_id, episode)`, where `episode` is a `ReplayRecorder.record_episode`
+            result. `experiment_id` is `None` for agents with no checkpoint (Random, CSP).
+
+    `initial_board` is stored once at the top level (every agent's episode has the
+    identical board by construction) rather than duplicated per agent.
+    """
+    first_episode = next(iter(agent_episodes.values()))[1]
+    return {
+        "id": f"race_{seed}",
+        "seed": seed,
+        "board_size": board_size,
+        "mines": mines,
+        "generated_at": generated_at,
+        "initial_board": first_episode["initial_board"],
+        "agents": {
+            agent_name: {
+                "experiment_id": experiment_id,
+                "steps": episode["steps"],
+                "won": episode["won"],
+                "total_reward": episode["total_reward"],
+                "steps_taken": episode["steps_taken"],
+            }
+            for agent_name, (experiment_id, episode) in agent_episodes.items()
+        },
+    }
