@@ -147,3 +147,43 @@ def test_replay_step_response_never_contains_undeclared_fields(client: TestClien
 
     for step in body["timeline"]:
         assert set(step.keys()) == {"step", "board_state", "action", "reward", "done", "reasoning"}
+
+
+# --- level/density scoping -------------------------------------------------------
+
+
+def test_list_replays_default_level_density_matches_omitted_params(client: TestClient) -> None:
+    default_response = client.get("/api/replays")
+    explicit_response = client.get("/api/replays?level=beginner&density=standard")
+
+    assert default_response.json() == explicit_response.json()
+
+
+def test_list_replays_scoped_to_non_default_level(client: TestClient) -> None:
+    response = client.get("/api/replays?level=intermediate&density=standard")
+
+    assert response.status_code == 200
+    ids = {r["id"] for r in response.json()}
+    assert ids == {"csp_episode_1"}  # the level fixture's only replay -- not the default-level ones
+
+
+def test_get_replay_detail_scoped_to_non_default_level(client: TestClient) -> None:
+    response = client.get("/api/replays/csp_episode_1?level=intermediate&density=standard")
+
+    assert response.status_code == 200
+    assert response.json()["agent"] == "CSP"
+
+
+def test_list_replays_scoped_to_level_with_no_data_returns_empty(client: TestClient) -> None:
+    # Expert has no replays generated in this fixture -- an honest empty
+    # list, not an error, same contract as a missing results_dir.
+    response = client.get("/api/replays?level=expert&density=standard")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_replays_unknown_level_returns_400(client: TestClient) -> None:
+    response = client.get("/api/replays?level=nightmare&density=standard")
+
+    assert response.status_code == 400

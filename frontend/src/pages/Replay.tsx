@@ -10,24 +10,36 @@ import { ReplayBoard } from "@/components/replay/ReplayBoard";
 import { ReplayControls } from "@/components/replay/ReplayControls";
 import { ReplayTimeline } from "@/components/replay/ReplayTimeline";
 import { ReplayInfo } from "@/components/replay/ReplayInfo";
+import { LevelDensitySelector } from "@/components/board/LevelDensitySelector";
 import { getReplay, getReplays } from "@/api/replays";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { useBoardLevel } from "@/hooks/useBoardLevel";
 import { pickBestReplay } from "@/lib/replaySelection";
 import type { ReplayDetail } from "@/types/replay";
 
 const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
 
 export function Replay() {
+  const { configs, level, density, setLevel, setDensity } = useBoardLevel();
+
   const {
     data: replays,
     status: listStatus,
     error: listError,
     isSlow: listSlow,
     retry: retryList,
-  } = useApiQuery(getReplays, []);
+  } = useApiQuery(() => getReplays(level, density), [level, density]);
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [selectedReplayId, setSelectedReplayId] = useState<string | null>(null);
+
+  // A different level/density means a different replay set -- don't keep a
+  // selection that may no longer exist (or may now refer to a different
+  // agent's episode) once the list refetches.
+  useEffect(() => {
+    setSelectedAgent(null);
+    setSelectedReplayId(null);
+  }, [level, density]);
 
   const agentOptions = useMemo(() => Array.from(new Set((replays ?? []).map((r) => r.agent))).sort(), [replays]);
   const replaysForAgent = useMemo(
@@ -59,7 +71,7 @@ export function Replay() {
     error: detailError,
     isSlow: detailSlow,
     retry: retryDetail,
-  } = useApiQuery(() => (selectedReplayId ? getReplay(selectedReplayId) : Promise.resolve(null)), [selectedReplayId]);
+  } = useApiQuery(() => (selectedReplayId ? getReplay(selectedReplayId, level, density) : Promise.resolve(null)), [selectedReplayId, level, density]);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -96,6 +108,10 @@ export function Replay() {
         </p>
       </div>
 
+      {configs.length > 0 && (
+        <LevelDensitySelector configs={configs} level={level} density={density} onLevelChange={setLevel} onDensityChange={setDensity} />
+      )}
+
       {listStatus === "loading" && (
         <div className="flex flex-col gap-4" aria-label="Loading replays">
           <Skeleton className="h-10 w-full max-w-md" />
@@ -111,8 +127,8 @@ export function Replay() {
       {listStatus === "success" && replays && replays.length === 0 && (
         <EmptyState
           icon={Film}
-          title="No replays generated yet"
-          description="Run python -m evaluation.generate_replays --agent <csp|dqn|ppo|random> --episodes N to create some."
+          title="No replays generated at this level yet"
+          description="Run python -m evaluation.generate_replays --agent <csp|dqn|ppo|random> --episodes N --rows R --cols C --mines M to create some."
         />
       )}
 

@@ -8,8 +8,10 @@ import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ReplayControls } from "@/components/replay/ReplayControls";
 import { SharedRaceBoard } from "@/components/race/SharedRaceBoard";
+import { LevelDensitySelector } from "@/components/board/LevelDensitySelector";
 import { getRace, getRaces } from "@/api/races";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { useBoardLevel } from "@/hooks/useBoardLevel";
 
 const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
 
@@ -24,12 +26,22 @@ const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
  * four independently-sampled episodes on matching seeds.
  */
 export function AgentMindsComparison() {
-  const { data: races, status: listStatus, error: listError, isSlow: listSlow, retry: retryList } = useApiQuery(getRaces, []);
+  const { configs, level, density, setLevel, setDensity } = useBoardLevel();
+  const {
+    data: races,
+    status: listStatus,
+    error: listError,
+    isSlow: listSlow,
+    retry: retryList,
+  } = useApiQuery(() => getRaces(level, density), [level, density]);
 
   const [raceId, setRaceId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!races || races.length === 0) return;
+    if (!races || races.length === 0) {
+      setRaceId(null);
+      return;
+    }
     if (raceId === null || !races.some((r) => r.id === raceId)) {
       setRaceId(races[0].id);
     }
@@ -41,7 +53,7 @@ export function AgentMindsComparison() {
     error: raceError,
     isSlow: raceSlow,
     retry: retryRace,
-  } = useApiQuery(() => (raceId ? getRace(raceId) : Promise.resolve(null)), [raceId]);
+  } = useApiQuery(() => (raceId ? getRace(raceId, level, density) : Promise.resolve(null)), [raceId, level, density]);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -71,6 +83,10 @@ export function AgentMindsComparison() {
         revealed for everyone; a mistake only costs the agent who made it.
       </p>
 
+      {configs.length > 0 && (
+        <LevelDensitySelector configs={configs} level={level} density={density} onLevelChange={setLevel} onDensityChange={setDensity} compact />
+      )}
+
       {listStatus === "loading" && (
         <div className="flex flex-col gap-3" aria-label="Loading races">
           <Skeleton className="h-64 w-full" />
@@ -83,8 +99,12 @@ export function AgentMindsComparison() {
       {listStatus === "success" && races && races.length === 0 && (
         <EmptyState
           icon={Trophy}
-          title="No races generated yet"
-          description="Run python -m evaluation.generate_race --episodes N to create some."
+          title="No races generated at this level yet"
+          description={
+            level === "beginner" && density === "standard"
+              ? "Run python -m evaluation.generate_race --episodes N to create some."
+              : "Races need all four agents trained at this level -- DQN/PPO haven't been trained here yet."
+          }
         />
       )}
 

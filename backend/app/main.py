@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import agents, experiments, metrics, races, replays
+from app.routes import agents, board_configs, experiments, metrics, races, replays
 
 app = FastAPI(
     title="RL Minesweeper Lab API",
@@ -28,6 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(agents.router)
+app.include_router(board_configs.router)
 app.include_router(experiments.router)
 app.include_router(metrics.router)
 app.include_router(replays.router)

@@ -100,3 +100,47 @@ def test_leaderboard_works_when_results_dir_missing(empty_client: TestClient) ->
     assert response.status_code == 200
     agents = {e["agent"] for e in response.json()}
     assert agents == {"Random", "CSP", "Q-Learning"}
+
+
+# --- level/density scoping -------------------------------------------------------
+
+
+def test_leaderboard_default_level_density_matches_omitted_params(client: TestClient) -> None:
+    # Explicitly passing the default must be byte-for-byte the same response
+    # as omitting the params entirely -- the whole point of the alias.
+    default_response = client.get("/api/leaderboard")
+    explicit_response = client.get("/api/leaderboard?level=beginner&density=standard")
+
+    assert default_response.json() == explicit_response.json()
+
+
+def test_leaderboard_scoped_to_non_default_level_reads_board_results(client: TestClient) -> None:
+    response = client.get("/api/leaderboard?level=intermediate&density=standard")
+
+    assert response.status_code == 200
+    by_agent = {e["agent"]: e for e in response.json()}
+    assert by_agent["CSP"]["win_rate"] == 0.625
+    assert by_agent["CSP"]["source"] == "board_result"
+
+
+def test_leaderboard_scoped_agent_with_no_data_is_not_trained_not_missing(client: TestClient) -> None:
+    response = client.get("/api/leaderboard?level=intermediate&density=standard")
+    by_agent = {e["agent"]: e for e in response.json()}
+
+    # Every cataloged agent still gets a row -- DQN just has no board result
+    # at this level yet (it hasn't been trained there).
+    assert set(by_agent.keys()) == {"Random", "CSP", "Q-Learning", "DQN", "PPO"}
+    assert by_agent["DQN"]["source"] == "not_trained"
+    assert by_agent["DQN"]["win_rate"] is None
+
+
+def test_leaderboard_unknown_level_returns_400(client: TestClient) -> None:
+    response = client.get("/api/leaderboard?level=nightmare&density=standard")
+
+    assert response.status_code == 400
+
+
+def test_leaderboard_unknown_density_returns_400(client: TestClient) -> None:
+    response = client.get("/api/leaderboard?level=beginner&density=nightmare")
+
+    assert response.status_code == 400

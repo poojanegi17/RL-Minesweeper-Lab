@@ -28,14 +28,14 @@ export interface UseAgentReplayResult {
  * `AIComparisonBoard` (home page) both need exactly this chain, so it lives
  * here once instead of twice.
  */
-export function useAgentReplay(agentName: string | null): UseAgentReplayResult {
+export function useAgentReplay(agentName: string | null, level?: string, density?: string): UseAgentReplayResult {
   const {
     data: replays,
     status: listStatus,
     error: listError,
     isSlow: listSlow,
     retry: retryList,
-  } = useApiQuery(getReplays, []);
+  } = useApiQuery(() => getReplays(level, density), [level, density]);
   const replayId = useMemo(() => {
     if (!agentName || !replays) return null;
     const forAgent = replays.filter((r) => r.agent === agentName);
@@ -48,7 +48,7 @@ export function useAgentReplay(agentName: string | null): UseAgentReplayResult {
     error: detailError,
     isSlow: detailSlow,
     retry: retryDetail,
-  } = useApiQuery(() => (replayId ? getReplay(replayId) : Promise.resolve(null)), [replayId]);
+  } = useApiQuery(() => (replayId ? getReplay(replayId, level, density) : Promise.resolve(null)), [replayId, level, density]);
 
   const status: QueryStatus =
     listStatus === "error" || detailStatus === "error"

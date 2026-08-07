@@ -94,6 +94,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir", type=str, default="results", help="Directory to write history/summary/checkpoint files into."
     )
+    parser.add_argument("--rows", type=int, default=ROWS, help="Board rows (see board_configs.py for the level/density presets).")
+    parser.add_argument("--cols", type=int, default=COLS, help="Board columns.")
+    parser.add_argument("--mines", type=int, default=NUM_MINES, help="Mine count.")
     parser.add_argument("--seed", type=int, default=SEED, help="Random seed.")
     parser.add_argument(
         "--torch-threads",
@@ -116,10 +119,10 @@ def main() -> None:
 
     lr_schedule = parse_lr_schedule(args.lr_schedule) if args.lr_schedule else None
 
-    env = MinesweeperEnv(rows=ROWS, cols=COLS, num_mines=NUM_MINES, seed=args.seed)
+    env = MinesweeperEnv(rows=args.rows, cols=args.cols, num_mines=args.mines, seed=args.seed)
     agent = DQNAgent(
-        rows=ROWS,
-        cols=COLS,
+        rows=args.rows,
+        cols=args.cols,
         lr=args.lr,
         lr_schedule=lr_schedule,
         batch_size=args.batch_size,

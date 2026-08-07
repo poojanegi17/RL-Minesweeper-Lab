@@ -1,0 +1,14 @@
+{
+  "agent": "Random",
+  "level": "intermediate",
+  "density": "dense",
+  "rows": 9,
+  "cols": 9,
+  "mines": 18,
+  "eval_episodes": 200,
+  "win_rate": 0.0,
+  "avg_episode_length": 3.945,
+  "avg_reward": -7.055,
+  "failures": 200,
+  "checkpoint_source": "levels/intermediate/standard"
+}

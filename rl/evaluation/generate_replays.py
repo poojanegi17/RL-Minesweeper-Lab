@@ -61,6 +61,9 @@ def parse_args() -> argparse.Namespace:
         help="For dqn/ppo: load this experiment's checkpoint (e.g. exp_E_combined) instead of the default.",
     )
     parser.add_argument("--seed", type=int, default=SEED, help="Base seed; episode i uses seed + i, so each replay's board differs.")
+    parser.add_argument("--rows", type=int, default=ROWS, help="Board rows (see board_configs.py for the level/density presets).")
+    parser.add_argument("--cols", type=int, default=COLS, help="Board columns.")
+    parser.add_argument("--mines", type=int, default=NUM_MINES, help="Mine count.")
     parser.add_argument("--output-dir", type=str, default="results/replays", help="Where to write replay JSON files.")
     parser.add_argument(
         "--results-dir", type=str, default="results", help="Where to look up experiment checkpoints from (used with --experiment-id)."
@@ -95,10 +98,10 @@ def main() -> None:
     experiment_id_for_checkpoint = args.experiment_id if agent_slug in ("dqn", "ppo") else None
 
     agent, action_fn, reasoning_fn, on_episode_start = build_agent(
-        agent_slug, args.seed, experiment_id_for_checkpoint, results_dir, rows=ROWS, cols=COLS, num_mines=NUM_MINES
+        agent_slug, args.seed, experiment_id_for_checkpoint, results_dir, rows=args.rows, cols=args.cols, num_mines=args.mines
     )
 
-    env = MinesweeperEnv(rows=ROWS, cols=COLS, num_mines=NUM_MINES)
+    env = MinesweeperEnv(rows=args.rows, cols=args.cols, num_mines=args.mines)
     recorder = ReplayRecorder()
     episode_number = _next_episode_number(output_dir, agent_slug)
 
@@ -114,8 +117,8 @@ def main() -> None:
         replay = build_replay(
             agent_name=agent_display_name,
             experiment_id=experiment_id_for_checkpoint,
-            board_size=f"{ROWS}x{COLS}",
-            mines=NUM_MINES,
+            board_size=f"{args.rows}x{args.cols}",
+            mines=args.mines,
             seed=args.seed + i,
             episode_number=episode_number,
             episode=episode,

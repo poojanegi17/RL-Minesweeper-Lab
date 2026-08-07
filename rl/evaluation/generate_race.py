@@ -60,6 +60,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate shared-board turn-based race artifacts across Random/CSP/DQN/PPO.")
     parser.add_argument("--episodes", type=int, required=True, help="Number of race boards to generate.")
     parser.add_argument("--seed", type=int, default=SEED, help="Base seed; race i uses seed + i.")
+    parser.add_argument("--rows", type=int, default=ROWS, help="Board rows (see board_configs.py for the level/density presets).")
+    parser.add_argument("--cols", type=int, default=COLS, help="Board columns.")
+    parser.add_argument("--mines", type=int, default=NUM_MINES, help="Mine count.")
     parser.add_argument("--dqn-experiment-id", type=str, default=None, help="Load this experiment's DQN checkpoint instead of the default.")
     parser.add_argument("--ppo-experiment-id", type=str, default=None, help="Load this experiment's PPO checkpoint instead of the default.")
     parser.add_argument("--output-dir", type=str, default="results/races", help="Where to write race JSON files.")
@@ -95,22 +98,22 @@ def main() -> None:
                 race_seed + _AGENT_SEED_OFFSET,
                 experiment_ids[agent_slug],
                 results_dir,
-                rows=ROWS,
-                cols=COLS,
-                num_mines=NUM_MINES,
+                rows=args.rows,
+                cols=args.cols,
+                num_mines=args.mines,
             )
             if on_episode_start is not None:
                 on_episode_start()
             agents.append((AGENT_DISPLAY_NAMES[agent_slug], action_fn, reasoning_fn))
 
-        game = Minesweeper(rows=ROWS, cols=COLS, num_mines=NUM_MINES, seed=race_seed)
+        game = Minesweeper(rows=args.rows, cols=args.cols, num_mines=args.mines, seed=race_seed)
         result = simulate_shared_race(game, agents)
 
         race = build_shared_race(
             race_number=race_number,
             seed=race_seed,
-            board_size=f"{ROWS}x{COLS}",
-            mines=NUM_MINES,
+            board_size=f"{args.rows}x{args.cols}",
+            mines=args.mines,
             generated_at=datetime.now(timezone.utc).isoformat(),
             turn_order=[AGENT_DISPLAY_NAMES[slug] for slug in AGENT_ORDER],
             result=result,

@@ -1,0 +1,105 @@
+{
+  "id": "csp_episode_6",
+  "agent": "CSP",
+  "experiment_id": null,
+  "board_size": "5x5",
+  "mines": 8,
+  "seed": 47,
+  "episode_number": 6,
+  "generated_at": "2026-08-07T14:49:02.792975+00:00",
+  "initial_board": [
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          0,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 3,
+        "col": 3
+      },
+      "reward": -10.0,
+      "done": true,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.32,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (3, 3)."
+      }
+    }
+  ],
+  "won": false,
+  "total_reward": -10.0,
+  "steps_taken": 1
+}

@@ -89,6 +89,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir", type=str, default="results", help="Directory to write history/summary/checkpoint files into."
     )
+    parser.add_argument("--rows", type=int, default=ROWS, help="Board rows (see board_configs.py for the level/density presets).")
+    parser.add_argument("--cols", type=int, default=COLS, help="Board columns.")
+    parser.add_argument("--mines", type=int, default=NUM_MINES, help="Mine count.")
     parser.add_argument("--seed", type=int, default=SEED, help="Random seed.")
     parser.add_argument(
         "--torch-threads",
@@ -109,10 +112,10 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_dir = output_dir / f"checkpoints_{args.episodes}"
 
-    train_env = MinesweeperEnv(rows=ROWS, cols=COLS, num_mines=NUM_MINES, seed=args.seed, reward_mode=args.reward_mode)
+    train_env = MinesweeperEnv(rows=args.rows, cols=args.cols, num_mines=args.mines, seed=args.seed, reward_mode=args.reward_mode)
     agent = PPOAgent(
-        rows=ROWS,
-        cols=COLS,
+        rows=args.rows,
+        cols=args.cols,
         lr=args.lr,
         gamma=args.gamma,
         gae_lambda=args.gae_lambda,
@@ -147,7 +150,7 @@ def main() -> None:
         used_checkpoint = "best_policy.pt"
 
     # Always evaluate under the *default* reward -- see module docstring.
-    eval_env = MinesweeperEnv(rows=ROWS, cols=COLS, num_mines=NUM_MINES, seed=args.seed, reward_mode="default")
+    eval_env = MinesweeperEnv(rows=args.rows, cols=args.cols, num_mines=args.mines, seed=args.seed, reward_mode="default")
     eval_results = evaluate_agent(
         eval_env,
         lambda observation: agent.select_action(observation, explore=False),

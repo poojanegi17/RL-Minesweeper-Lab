@@ -149,6 +149,7 @@ def results_dir(tmp_path: Path) -> Path:
 
     _write_replays(tmp_path / "replays")
     _write_races(tmp_path / "races")
+    _write_level_data(tmp_path / "levels" / "intermediate" / "standard")
 
     return tmp_path
 
@@ -251,6 +252,38 @@ def _write_races(races_dir: Path) -> None:
     (races_dir / "incomplete_race.json").write_text(json.dumps({"id": "incomplete_race", "seed": 2}))
     # Malformed: invalid JSON.
     (races_dir / "broken_race.json").write_text("{not valid json")
+
+
+def _write_level_data(level_density_dir: Path) -> None:
+    """A non-default (level, density) directory -- CSP has a board result
+    (mirroring evaluate_board_config.py's output), DQN deliberately doesn't
+    (the "not trained yet at this level" case), plus one replay and one race
+    so level-scoped replay/race listing has something real to find."""
+    level_density_dir.mkdir(parents=True)
+    csp_result = {
+        "agent": "CSP",
+        "level": "intermediate",
+        "density": "standard",
+        "rows": 9,
+        "cols": 9,
+        "mines": 12,
+        "eval_episodes": 200,
+        "win_rate": 0.625,
+        "avg_episode_length": 16.8,
+        "avg_reward": -1.2,
+        "failures": 75,
+        "checkpoint_source": None,
+    }
+    (level_density_dir / "csp_board_result.json").write_text(json.dumps(csp_result))
+
+    (level_density_dir / "replays").mkdir()
+    _write_replay(
+        level_density_dir / "replays" / "csp_episode_1.json",
+        replay_id="csp_episode_1",
+        agent="CSP",
+        won=True,
+        reasoning={"deduction_type": "safe", "constraint_cells": [[0, 0]], "remaining_mines": 0, "mine_probability": None, "inference": "Cell (0, 0) is safe."},
+    )
 
 
 @pytest.fixture()

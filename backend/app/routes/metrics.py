@@ -9,9 +9,11 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.board_levels import DEFAULT_DENSITY, DEFAULT_LEVEL, is_valid, resolve_level_dir
 from app.schemas.metrics import LeaderboardEntry, MetricsResponse
+from app.services.board_result_loader import BoardResultLoader
 from app.services.results_loader import (
     ExperimentNotFoundError,
     ExperimentRecord,
@@ -21,6 +23,10 @@ from app.services.results_loader import (
 )
 
 router = APIRouter(prefix="/api", tags=["metrics"])
+
+# Mirrors routes/agents.py's catalog -- kept as its own small constant here
+# rather than imported, to avoid a cross-route import for one name list.
+_AGENT_NAMES = ["Random", "CSP", "Q-Learning", "DQN", "PPO"]
 
 # Random, CSP, and Q-Learning write no experiment artifacts at all (see
 # services/results_loader.py), so there is nothing under rl/results/ for
@@ -94,15 +100,61 @@ def _sort_key(entry: LeaderboardEntry) -> float:
     return entry.win_rate if entry.win_rate is not None else -1.0
 
 
-@router.get("/leaderboard", response_model=List[LeaderboardEntry], tags=["leaderboard"])
-def get_leaderboard(loader: ResultsLoader = Depends(get_results_loader)) -> List[LeaderboardEntry]:
-    """Rank every cataloged agent by its best known win rate, highest first.
+def _board_result_entries(board_loader: BoardResultLoader) -> List[LeaderboardEntry]:
+    """Leaderboard rows for a non-default (level, density) -- one row per
+    agent, sourced from `evaluate_board_config.py`'s output. An agent with no
+    board-result file at this level (DQN/PPO before that level is trained)
+    still gets a row, tagged `source="not_trained"` with `win_rate=None`,
+    rather than silently disappearing from the list."""
+    results_by_agent = {r["agent"]: r for r in board_loader.list_results()}
+    entries = []
+    for agent in _AGENT_NAMES:
+        result = results_by_agent.get(agent)
+        if result is None:
+            entries.append(LeaderboardEntry(agent=agent, win_rate=None, avg_episode_length=None, avg_reward=None, source="not_trained"))
+        else:
+            entries.append(
+                LeaderboardEntry(
+                    agent=agent,
+                    win_rate=result["win_rate"],
+                    avg_episode_length=result["avg_episode_length"],
+                    avg_reward=result["avg_reward"],
+                    source="board_result",
+                )
+            )
+    return entries
 
-    DQN/PPO entries (`source="experiment_artifact"`) are computed live from
-    `rl/results/` -- the best win rate found across all of that agent's
-    discovered experiments. Random/CSP/Q-Learning entries
-    (`source="static_reference"`) have no artifacts to read and use the
-    project README's last-recorded figures instead; see module docstring.
+
+@router.get("/leaderboard", response_model=List[LeaderboardEntry], tags=["leaderboard"])
+def get_leaderboard(
+    level: str = Query(DEFAULT_LEVEL, description="Difficulty level, e.g. \"beginner\"."),
+    density: str = Query(DEFAULT_DENSITY, description="Mine-density preset, e.g. \"standard\"."),
+    loader: ResultsLoader = Depends(get_results_loader),
+) -> List[LeaderboardEntry]:
+    """Rank every cataloged agent by its best known win rate, highest first,
+    at the given `(level, density)` (see `GET /api/board-configs`).
+
+    At the default "beginner"/"standard" board (every experiment/replay/race
+    this project has generated to date), DQN/PPO entries
+    (`source="experiment_artifact"`) are computed live from `rl/results/` --
+    the best win rate found across all of that agent's discovered
+    experiments. Random/CSP/Q-Learning entries (`source="static_reference"`)
+    have no artifacts to read and use the project README's last-recorded
+    figures instead; see module docstring.
+
+    At any other level/density, every entry (`source="board_result"`, or
+    `"not_trained"` if that agent has no data there yet) comes from
+    `evaluate_board_config.py`'s output instead -- a different, much simpler
+    artifact shape than a training experiment, since most of these runs
+    involve no training at all (see `services/board_result_loader.py`).
     """
-    entries = _artifact_entries(loader) + list(_STATIC_REFERENCE_ENTRIES)
+    if not is_valid(level, density):
+        raise HTTPException(status_code=400, detail=f"Unknown level/density: {level!r}/{density!r}")
+
+    if level == DEFAULT_LEVEL and density == DEFAULT_DENSITY:
+        entries = _artifact_entries(loader) + list(_STATIC_REFERENCE_ENTRIES)
+    else:
+        scoped_dir = resolve_level_dir(loader.results_dir, level, density)
+        entries = _board_result_entries(BoardResultLoader(scoped_dir))
+
     return sorted(entries, key=_sort_key, reverse=True)

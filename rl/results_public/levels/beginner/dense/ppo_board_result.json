@@ -1,0 +1,14 @@
+{
+  "agent": "PPO",
+  "level": "beginner",
+  "density": "dense",
+  "rows": 5,
+  "cols": 5,
+  "mines": 8,
+  "eval_episodes": 200,
+  "win_rate": 0.005,
+  "avg_episode_length": 2.75,
+  "avg_reward": -8.15,
+  "failures": 199,
+  "checkpoint_source": null
+}

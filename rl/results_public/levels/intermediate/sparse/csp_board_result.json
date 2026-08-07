@@ -1,0 +1,14 @@
+{
+  "agent": "CSP",
+  "level": "intermediate",
+  "density": "sparse",
+  "rows": 9,
+  "cols": 9,
+  "mines": 8,
+  "eval_episodes": 200,
+  "win_rate": 0.77,
+  "avg_episode_length": 11.825,
+  "avg_reward": 16.225,
+  "failures": 46,
+  "checkpoint_source": "levels/intermediate/standard"
+}

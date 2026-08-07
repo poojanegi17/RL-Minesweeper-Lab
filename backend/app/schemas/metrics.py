@@ -32,6 +32,11 @@ class LeaderboardEntry(BaseModel):
     avg_episode_length: Optional[float] = None
     avg_reward: Optional[float] = None
     source: str = Field(
-        ..., description="\"experiment_artifact\" (read live from rl/results/) or \"static_reference\" (README-recorded, no artifact exists)."
+        ...,
+        description=(
+            "At the default beginner/standard board: \"experiment_artifact\" (read live from rl/results/) or "
+            "\"static_reference\" (README-recorded, no artifact exists). At any other level/density: "
+            "\"board_result\" (read from evaluate_board_config.py's output) or \"not_trained\" (no data yet at this level)."
+        ),
     )
     experiment_id: Optional[str] = Field(None, description="Which experiment this row's numbers came from, if artifact-sourced.")

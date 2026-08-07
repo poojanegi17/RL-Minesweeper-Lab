@@ -1,0 +1,14 @@
+{
+  "agent": "CSP",
+  "level": "expert",
+  "density": "sparse",
+  "rows": 16,
+  "cols": 16,
+  "mines": 30,
+  "eval_episodes": 200,
+  "win_rate": 0.71,
+  "avg_episode_length": 38.92,
+  "avg_reward": 42.12,
+  "failures": 58,
+  "checkpoint_source": "levels/expert/standard"
+}

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.board_levels import DEFAULT_DENSITY, DEFAULT_LEVEL, is_valid, resolve_level_dir
 from app.schemas.race import RaceDetail, RaceSummary
 from app.services.race_loader import MalformedRaceError, RaceLoader, RaceNotFoundError, get_race_loader
 
@@ -42,18 +43,41 @@ def to_detail(raw: Dict[str, Any]) -> RaceDetail:
     )
 
 
+def _scoped_loader(level: str, density: str, loader: RaceLoader) -> RaceLoader:
+    """See `routes/replays.py`'s `_scoped_loader` -- same reasoning:
+    `loader.races_dir.parent` reliably recovers the base results directory."""
+    if level == DEFAULT_LEVEL and density == DEFAULT_DENSITY:
+        return loader
+    scoped_dir = resolve_level_dir(loader.races_dir.parent, level, density)
+    return RaceLoader(scoped_dir / "races")
+
+
 @router.get("", response_model=List[RaceSummary])
-def list_races(loader: RaceLoader = Depends(get_race_loader)) -> List[RaceSummary]:
-    """List every race discoverable under rl/results/races/. Never errors -- an
-    empty or missing directory simply yields an empty list."""
-    return [to_summary(raw) for raw in loader.list_races()]
+def list_races(
+    level: str = Query(DEFAULT_LEVEL, description="Difficulty level, e.g. \"beginner\"."),
+    density: str = Query(DEFAULT_DENSITY, description="Mine-density preset, e.g. \"standard\"."),
+    loader: RaceLoader = Depends(get_race_loader),
+) -> List[RaceSummary]:
+    """List every race discoverable at the given `(level, density)` (see
+    `GET /api/board-configs`). Never errors -- an empty or missing directory
+    simply yields an empty list."""
+    if not is_valid(level, density):
+        raise HTTPException(status_code=400, detail=f"Unknown level/density: {level!r}/{density!r}")
+    return [to_summary(raw) for raw in _scoped_loader(level, density, loader).list_races()]
 
 
 @router.get("/{race_id}", response_model=RaceDetail)
-def get_race(race_id: str, loader: RaceLoader = Depends(get_race_loader)) -> RaceDetail:
-    """Full turn-by-turn timeline for one shared-board race."""
+def get_race(
+    race_id: str,
+    level: str = Query(DEFAULT_LEVEL, description="Difficulty level, e.g. \"beginner\"."),
+    density: str = Query(DEFAULT_DENSITY, description="Mine-density preset, e.g. \"standard\"."),
+    loader: RaceLoader = Depends(get_race_loader),
+) -> RaceDetail:
+    """Full turn-by-turn timeline for one shared-board race at the given `(level, density)`."""
+    if not is_valid(level, density):
+        raise HTTPException(status_code=400, detail=f"Unknown level/density: {level!r}/{density!r}")
     try:
-        raw = loader.get_race(race_id)
+        raw = _scoped_loader(level, density, loader).get_race(race_id)
     except RaceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except MalformedRaceError as exc:

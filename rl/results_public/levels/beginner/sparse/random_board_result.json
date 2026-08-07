@@ -1,0 +1,14 @@
+{
+  "agent": "Random",
+  "level": "beginner",
+  "density": "sparse",
+  "rows": 5,
+  "cols": 5,
+  "mines": 3,
+  "eval_episodes": 200,
+  "win_rate": 0.065,
+  "avg_episode_length": 3.86,
+  "avg_reward": -5.84,
+  "failures": 187,
+  "checkpoint_source": null
+}

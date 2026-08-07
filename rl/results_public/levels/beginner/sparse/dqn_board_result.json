@@ -1,0 +1,14 @@
+{
+  "agent": "DQN",
+  "level": "beginner",
+  "density": "sparse",
+  "rows": 5,
+  "cols": 5,
+  "mines": 3,
+  "eval_episodes": 200,
+  "win_rate": 0.165,
+  "avg_episode_length": 4.96,
+  "avg_reward": -2.74,
+  "failures": 167,
+  "checkpoint_source": null
+}

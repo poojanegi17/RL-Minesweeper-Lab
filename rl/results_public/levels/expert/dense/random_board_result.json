@@ -1,0 +1,14 @@
+{
+  "agent": "Random",
+  "level": "expert",
+  "density": "dense",
+  "rows": 16,
+  "cols": 16,
+  "mines": 60,
+  "eval_episodes": 200,
+  "win_rate": 0.0,
+  "avg_episode_length": 4.17,
+  "avg_reward": -6.83,
+  "failures": 200,
+  "checkpoint_source": "levels/expert/standard"
+}

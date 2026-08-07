@@ -11,10 +11,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ReplayBoard } from "@/components/replay/ReplayBoard";
 import { ReplayControls } from "@/components/replay/ReplayControls";
 import { ReplayTimeline } from "@/components/replay/ReplayTimeline";
+import { LevelDensitySelector } from "@/components/board/LevelDensitySelector";
 import { AGENT_ICONS } from "@/components/agent/agentIcons";
 import { AGENT_STYLES } from "@/data/types";
 import { agentKindFromName } from "@/lib/agentAdapters";
 import { useAgentReplay } from "@/hooks/useAgentReplay";
+import { useBoardLevel } from "@/hooks/useBoardLevel";
 import { describeDecisionReason } from "@/lib/reasoning";
 import { cn } from "@/lib/cn";
 import type { PlayableMinesweeperSummary } from "@/components/home/PlayableMinesweeper";
@@ -46,7 +48,8 @@ interface AIComparisonBoardProps {
  */
 export function AIComparisonBoard({ humanSummary }: AIComparisonBoardProps) {
   const [agent, setAgent] = useState("DQN");
-  const { replay, status, error, isSlow, retry } = useAgentReplay(agent);
+  const { configs, level, density, setLevel, setDensity } = useBoardLevel();
+  const { replay, status, error, isSlow, retry } = useAgentReplay(agent, level, density);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -118,6 +121,10 @@ export function AIComparisonBoard({ humanSummary }: AIComparisonBoardProps) {
           </div>
         </div>
 
+        {configs.length > 0 && (
+          <LevelDensitySelector configs={configs} level={level} density={density} onLevelChange={setLevel} onDensityChange={setDensity} compact />
+        )}
+
         {status === "loading" && (
           <div className="flex flex-col gap-3">
             <Skeleton className="h-64 w-full" />
@@ -131,7 +138,11 @@ export function AIComparisonBoard({ humanSummary }: AIComparisonBoardProps) {
           <EmptyState
             icon={PlayCircle}
             title="No recorded episodes yet"
-            description={`No replay has been generated for ${agent} yet.`}
+            description={
+              level === "beginner" && density === "standard"
+                ? `No replay has been generated for ${agent} yet.`
+                : `${agent} hasn't been trained/recorded at this level and density yet.`
+            }
           />
         )}
         <AnimatePresence mode="wait">

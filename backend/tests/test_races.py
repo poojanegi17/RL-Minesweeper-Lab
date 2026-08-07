@@ -113,3 +113,28 @@ def test_get_race_detail_missing_results_dir_returns_404(empty_client: TestClien
     response = empty_client.get("/api/races/anything")
 
     assert response.status_code == 404
+
+
+# --- level/density scoping -------------------------------------------------------
+
+
+def test_list_races_default_level_density_matches_omitted_params(client: TestClient) -> None:
+    default_response = client.get("/api/races")
+    explicit_response = client.get("/api/races?level=beginner&density=standard")
+
+    assert default_response.json() == explicit_response.json()
+
+
+def test_list_races_scoped_to_level_with_no_races_yet_returns_empty(client: TestClient) -> None:
+    # The intermediate/standard fixture has a board result and a replay but
+    # no race -- an honest empty list, not an error.
+    response = client.get("/api/races?level=intermediate&density=standard")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_races_unknown_density_returns_400(client: TestClient) -> None:
+    response = client.get("/api/races?level=beginner&density=nightmare")
+
+    assert response.status_code == 400
