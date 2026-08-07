@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { to: "/", label: "Home" },
   { to: "/agents", label: "Agents" },
   { to: "/research", label: "Research" },
+  { to: "/compare", label: "Compare" },
   { to: "/replay", label: "Replay" },
   { to: "/about", label: "About" },
 ];
