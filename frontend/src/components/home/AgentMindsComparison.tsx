@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { BarChart3, Dices, Network, PieChart, PlayCircle, type LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ReplayBoard } from "@/components/replay/ReplayBoard";
@@ -35,7 +36,7 @@ const AGENT_MOTIFS: Record<string, { icon: LucideIcon; label: string }> = {
  */
 export function AgentMindsComparison() {
   const [agent, setAgent] = useState("CSP");
-  const { replay, status, error, retry } = useAgentReplay(agent);
+  const { replay, status, error, isSlow, retry } = useAgentReplay(agent);
 
   const step = useMemo(() => {
     if (!replay) return null;
@@ -87,7 +88,12 @@ export function AgentMindsComparison() {
         })}
       </div>
 
-      {status === "loading" && <Skeleton className="h-64 w-full" />}
+      {status === "loading" && (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-64 w-full" />
+          {isSlow && <ColdStartNotice />}
+        </div>
+      )}
       {status === "error" && error && (
         <ApiErrorState error={error} onRetry={retry} title="Couldn't load this agent's replay" />
       )}

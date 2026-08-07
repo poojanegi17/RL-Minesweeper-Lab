@@ -3,6 +3,7 @@ import { Film } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ReplayBoard } from "@/components/replay/ReplayBoard";
@@ -16,7 +17,13 @@ import type { ReplayDetail } from "@/types/replay";
 const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
 
 export function Replay() {
-  const { data: replays, status: listStatus, error: listError, retry: retryList } = useApiQuery(getReplays, []);
+  const {
+    data: replays,
+    status: listStatus,
+    error: listError,
+    isSlow: listSlow,
+    retry: retryList,
+  } = useApiQuery(getReplays, []);
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [selectedReplayId, setSelectedReplayId] = useState<string | null>(null);
@@ -41,7 +48,11 @@ export function Replay() {
       return;
     }
     if (!replaysForAgent.some((r) => r.id === selectedReplayId)) {
-      setSelectedReplayId(replaysForAgent[0].id);
+      // Prefer a win, then the longest episode, over plain array order --
+      // otherwise whichever replay happens to sort first (e.g. a 1-step
+      // loss) becomes the first thing a visitor sees for that agent.
+      const best = [...replaysForAgent].sort((a, b) => Number(b.won) - Number(a.won) || b.steps - a.steps)[0];
+      setSelectedReplayId(best.id);
     }
   }, [replaysForAgent, selectedReplayId]);
 
@@ -49,6 +60,7 @@ export function Replay() {
     data: replay,
     status: detailStatus,
     error: detailError,
+    isSlow: detailSlow,
     retry: retryDetail,
   } = useApiQuery(() => (selectedReplayId ? getReplay(selectedReplayId) : Promise.resolve(null)), [selectedReplayId]);
 
@@ -91,6 +103,7 @@ export function Replay() {
         <div className="flex flex-col gap-4" aria-label="Loading replays">
           <Skeleton className="h-10 w-full max-w-md" />
           <Skeleton className="h-96 w-full" />
+          {listSlow && <ColdStartNotice />}
         </div>
       )}
 
@@ -131,7 +144,12 @@ export function Replay() {
             </label>
           </div>
 
-          {detailStatus === "loading" && <Skeleton className="h-96 w-full" />}
+          {detailStatus === "loading" && (
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-96 w-full" />
+              {detailSlow && <ColdStartNotice />}
+            </div>
+          )}
           {detailStatus === "error" && detailError && (
             <ApiErrorState error={detailError} onRetry={retryDetail} title="Couldn't load this replay" />
           )}

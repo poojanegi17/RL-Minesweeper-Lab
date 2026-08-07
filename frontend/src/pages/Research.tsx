@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { ResearchPipeline } from "@/components/research/ResearchPipeline";
 import { getLeaderboard } from "@/api/metrics";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -15,7 +16,7 @@ import { useApiQuery } from "@/hooks/useApiQuery";
  */
 export function Research() {
   const { agentSlug } = useParams<{ agentSlug?: string }>();
-  const { data, status, error, retry } = useApiQuery(getLeaderboard, []);
+  const { data, status, error, isSlow, retry } = useApiQuery(getLeaderboard, []);
 
   return (
     <div className="flex flex-col gap-8">
@@ -32,6 +33,7 @@ export function Research() {
         <div className="flex flex-col gap-4">
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-64 w-full" />
+          {isSlow && <ColdStartNotice />}
         </div>
       )}
       {status === "error" && error && <ApiErrorState error={error} onRetry={retry} title="Couldn't load the research pipeline" />}

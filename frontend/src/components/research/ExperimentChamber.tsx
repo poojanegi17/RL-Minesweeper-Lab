@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Quote, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { ExperimentSetup } from "@/components/research/ExperimentSetup";
 import { ExperimentComparison } from "@/components/research/ExperimentComparison";
@@ -86,7 +87,7 @@ export function ExperimentChamber({
   leaderboardEntry,
 }: ExperimentChamberProps) {
   const experimentId = leaderboardEntry?.experiment_id ?? null;
-  const { data, status, error, retry } = useApiQuery(() => fetchChamberData(experimentId), [experimentId]);
+  const { data, status, error, isSlow, retry } = useApiQuery(() => fetchChamberData(experimentId), [experimentId]);
   const slug = slugifyAgentName(agentName);
   const [activeChapter, setActiveChapter] = useState(0);
   const chapterRefs = useRef<(HTMLElement | null)[]>([]);
@@ -150,7 +151,12 @@ export function ExperimentChamber({
           </div>
         </Chapter>
 
-        {status === "loading" && <Skeleton className="h-48 w-full" />}
+        {status === "loading" && (
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-48 w-full" />
+            {isSlow && <ColdStartNotice />}
+          </div>
+        )}
         {status === "error" && error && <ApiErrorState error={error} onRetry={retry} title="Couldn't load this experiment" />}
 
         {status === "success" && data && (

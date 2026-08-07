@@ -6,9 +6,17 @@ export interface UseApiQueryResult<T> {
   data: T | null;
   status: QueryStatus;
   error: Error | null;
+  /** True once the current request has been loading for longer than
+   * `SLOW_THRESHOLD_MS` -- distinguishes a normal brief loading flicker from
+   * a Render free-tier cold start (can take 20-50s), so pages can show a
+   * "waking up the backend" hint instead of leaving a bare skeleton up with
+   * no explanation. Always false outside the "loading" status. */
+  isSlow: boolean;
   /** Re-runs `fetcher` from scratch -- wired to the "Retry" action in error states. */
   retry: () => void;
 }
+
+const SLOW_THRESHOLD_MS = 3500;
 
 /**
  * Small `useState`/`useEffect`-based data-fetching hook -- this project has
@@ -25,12 +33,18 @@ export function useApiQuery<T>(fetcher: () => Promise<T>, deps: DependencyList =
   const [data, setData] = useState<T | null>(null);
   const [status, setStatus] = useState<QueryStatus>("loading");
   const [error, setError] = useState<Error | null>(null);
+  const [isSlow, setIsSlow] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setStatus("loading");
     setError(null);
+    setIsSlow(false);
+
+    const slowTimer = setTimeout(() => {
+      if (!cancelled) setIsSlow(true);
+    }, SLOW_THRESHOLD_MS);
 
     fetcher()
       .then((result) => {
@@ -42,10 +56,14 @@ export function useApiQuery<T>(fetcher: () => Promise<T>, deps: DependencyList =
         if (cancelled) return;
         setError(err instanceof Error ? err : new Error("Something went wrong."));
         setStatus("error");
+      })
+      .finally(() => {
+        clearTimeout(slowTimer);
       });
 
     return () => {
       cancelled = true;
+      clearTimeout(slowTimer);
     };
     // deps is caller-controlled by design -- see docstring.
     // eslint-disable-next-line
@@ -53,5 +71,5 @@ export function useApiQuery<T>(fetcher: () => Promise<T>, deps: DependencyList =
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
-  return { data, status, error, retry };
+  return { data, status, error, isSlow, retry };
 }

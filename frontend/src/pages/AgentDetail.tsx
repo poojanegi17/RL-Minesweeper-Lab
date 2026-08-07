@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { HyperparameterTable } from "@/components/experiment/HyperparameterTable";
 import { AgentOverview } from "@/components/agents/AgentOverview";
 import { AlgorithmPipeline } from "@/components/agents/AlgorithmPipeline";
@@ -60,7 +61,7 @@ async function fetchAgentDetail(slug: string): Promise<AgentDetailData | null> {
 
 export function AgentDetail() {
   const { agentId } = useParams<{ agentId: string }>();
-  const { data, status, error, retry } = useApiQuery(() => fetchAgentDetail(agentId ?? ""), [agentId]);
+  const { data, status, error, isSlow, retry } = useApiQuery(() => fetchAgentDetail(agentId ?? ""), [agentId]);
 
   if (status === "loading") {
     return (
@@ -68,6 +69,7 @@ export function AgentDetail() {
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-64 w-full" />
+        {isSlow && <ColdStartNotice />}
       </div>
     );
   }

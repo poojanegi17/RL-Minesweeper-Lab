@@ -2,6 +2,7 @@ import { motion, type Variants } from "framer-motion";
 import { Card } from "@/components/ui/Card";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { getAgents } from "@/api/agents";
 import { getExperiments } from "@/api/experiments";
 import { getReplays } from "@/api/replays";
@@ -50,14 +51,17 @@ const cardVariants: Variants = {
  * source it from (backend test count), which is clearly labeled as such.
  */
 export function ProjectScaleMetrics() {
-  const { data, status, error, retry } = useApiQuery(fetchScaleData, []);
+  const { data, status, error, isSlow, retry } = useApiQuery(fetchScaleData, []);
 
   if (status === "loading") {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Loading project metrics">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
+      <div className="flex flex-col gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Loading project metrics">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+        {isSlow && <ColdStartNotice />}
       </div>
     );
   }

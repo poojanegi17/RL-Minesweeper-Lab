@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ReplayBoard } from "@/components/replay/ReplayBoard";
@@ -45,7 +46,7 @@ interface AIComparisonBoardProps {
  */
 export function AIComparisonBoard({ humanSummary }: AIComparisonBoardProps) {
   const [agent, setAgent] = useState("DQN");
-  const { replay, status, error, retry } = useAgentReplay(agent);
+  const { replay, status, error, isSlow, retry } = useAgentReplay(agent);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -117,7 +118,12 @@ export function AIComparisonBoard({ humanSummary }: AIComparisonBoardProps) {
           </div>
         </div>
 
-        {status === "loading" && <Skeleton className="h-64 w-full" />}
+        {status === "loading" && (
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-64 w-full" />
+            {isSlow && <ColdStartNotice />}
+          </div>
+        )}
         {status === "error" && error && (
           <ApiErrorState error={error} onRetry={retry} title="Couldn't load this agent's replay" />
         )}

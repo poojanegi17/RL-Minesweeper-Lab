@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { ReplayBoard } from "@/components/replay/ReplayBoard";
 import { useAgentReplay } from "@/hooks/useAgentReplay";
 import type { DecisionExampleConfig } from "@/lib/agentExplainers";
@@ -59,7 +60,7 @@ function IllustrativeExample({ config }: { config: Extract<DecisionExampleConfig
 }
 
 function ReplayDecisionExample({ agentName }: { agentName: string }) {
-  const { replay, status, error, retry } = useAgentReplay(agentName);
+  const { replay, status, error, isSlow, retry } = useAgentReplay(agentName);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [showReasoning, setShowReasoning] = useState(false);
@@ -70,7 +71,12 @@ function ReplayDecisionExample({ agentName }: { agentName: string }) {
   }, [replay?.id]);
 
   if (status === "loading") {
-    return <Skeleton className="h-72 w-full" />;
+    return (
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-72 w-full" />
+        {isSlow && <ColdStartNotice />}
+      </div>
+    );
   }
   if (status === "error" && error) {
     return <ApiErrorState error={error} onRetry={retry} title="Couldn't load an example" />;

@@ -12,6 +12,10 @@ export interface UseAgentReplayResult {
    * previous `agentName`. */
   status: QueryStatus;
   error: Error | null;
+  /** True once either underlying request has been loading long enough to
+   * look like a backend cold start rather than a normal brief flicker --
+   * see `useApiQuery`'s `isSlow`. */
+  isSlow: boolean;
   retry: () => void;
 }
 
@@ -24,7 +28,13 @@ export interface UseAgentReplayResult {
  * twice.
  */
 export function useAgentReplay(agentName: string | null): UseAgentReplayResult {
-  const { data: replays, status: listStatus, error: listError, retry: retryList } = useApiQuery(getReplays, []);
+  const {
+    data: replays,
+    status: listStatus,
+    error: listError,
+    isSlow: listSlow,
+    retry: retryList,
+  } = useApiQuery(getReplays, []);
   const replayId = useMemo(
     () => (agentName ? (replays?.find((r) => r.agent === agentName)?.id ?? null) : null),
     [replays, agentName],
@@ -34,6 +44,7 @@ export function useAgentReplay(agentName: string | null): UseAgentReplayResult {
     data: replay,
     status: detailStatus,
     error: detailError,
+    isSlow: detailSlow,
     retry: retryDetail,
   } = useApiQuery(() => (replayId ? getReplay(replayId) : Promise.resolve(null)), [replayId]);
 
@@ -48,6 +59,7 @@ export function useAgentReplay(agentName: string | null): UseAgentReplayResult {
     replay: replayId ? replay : null,
     status,
     error: listError ?? detailError,
+    isSlow: listSlow || detailSlow,
     retry: () => {
       retryList();
       retryDetail();

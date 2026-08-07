@@ -4,6 +4,7 @@ import { AgentCard } from "@/components/agent/AgentCard";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { getAgents } from "@/api/agents";
 import { getLeaderboard } from "@/api/metrics";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -22,7 +23,7 @@ async function fetchAgentCatalog() {
 }
 
 export function Agents() {
-  const { data: agents, status, error, retry } = useApiQuery(fetchAgentCatalog, []);
+  const { data: agents, status, error, isSlow, retry } = useApiQuery(fetchAgentCatalog, []);
 
   return (
     <div className="flex flex-col gap-10">
@@ -38,10 +39,13 @@ export function Agents() {
       </div>
 
       {status === "loading" && (
-        <div className="grid gap-4 sm:grid-cols-2" aria-label="Loading agents">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-40" />
-          ))}
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2" aria-label="Loading agents">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-40" />
+            ))}
+          </div>
+          {isSlow && <ColdStartNotice />}
         </div>
       )}
 

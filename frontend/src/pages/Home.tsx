@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { SectionCard } from "@/components/home/SectionCard";
 import { AmbientBackground } from "@/components/home/AmbientBackground";
 import { InteractiveHeroBoard } from "@/components/home/InteractiveHeroBoard";
@@ -72,7 +73,7 @@ function scrollToId(id: string) {
 }
 
 export function Home() {
-  const { data, status, error, retry } = useApiQuery(fetchHomeData, []);
+  const { data, status, error, isSlow, retry } = useApiQuery(fetchHomeData, []);
   const [humanSummary, setHumanSummary] = useState<PlayableMinesweeperSummary>({
     status: "idle",
     revealedCount: 0,
@@ -83,7 +84,7 @@ export function Home() {
     <div className="flex flex-col gap-10">
       <AmbientBackground />
 
-      <HeroSection featuredReplay={data?.featuredReplay ?? null} status={status} />
+      <HeroSection featuredReplay={data?.featuredReplay ?? null} status={status} isSlow={isSlow} />
 
       <SectionCard title="How does AI see Minesweeper?" glow="bg-blue-500/10">
         <ObservationVisualizer board={data?.featuredReplay?.step.board_state ?? null} />
@@ -111,7 +112,14 @@ export function Home() {
       </SectionCard>
 
       <SectionCard title="Live leaderboard" glow="bg-amber-400/10">
-        <DataSection status={status} error={error} retry={retry} loadingFallback={<LeaderboardSkeleton />} errorTitle="Couldn't load the leaderboard">
+        <DataSection
+          status={status}
+          error={error}
+          isSlow={isSlow}
+          retry={retry}
+          loadingFallback={<LeaderboardSkeleton />}
+          errorTitle="Couldn't load the leaderboard"
+        >
           {data && data.leaderboard.length === 0 ? (
             <EmptyState icon={Trophy} title="No leaderboard data" description="The backend didn't return any ranked agents." />
           ) : (
@@ -125,7 +133,14 @@ export function Home() {
         description="Five algorithms, one evolving pipeline — click any milestone to open its full experiment story."
         glow="bg-agent-q-learning/10"
       >
-        <DataSection status={status} error={error} retry={retry} loadingFallback={<Skeleton className="h-56 w-full" />} errorTitle="Couldn't load the leaderboard">
+        <DataSection
+          status={status}
+          error={error}
+          isSlow={isSlow}
+          retry={retry}
+          loadingFallback={<Skeleton className="h-56 w-full" />}
+          errorTitle="Couldn't load the leaderboard"
+        >
           {data && <ResearchJourney leaderboard={data.leaderboard} />}
         </DataSection>
       </SectionCard>
@@ -138,6 +153,7 @@ export function Home() {
 function DataSection({
   status,
   error,
+  isSlow,
   retry,
   loadingFallback,
   errorTitle,
@@ -145,12 +161,20 @@ function DataSection({
 }: {
   status: QueryStatus;
   error: Error | null;
+  isSlow: boolean;
   retry: () => void;
   loadingFallback: ReactNode;
   errorTitle: string;
   children: ReactNode;
 }) {
-  if (status === "loading") return <>{loadingFallback}</>;
+  if (status === "loading") {
+    return (
+      <div className="flex flex-col gap-3">
+        {loadingFallback}
+        {isSlow && <ColdStartNotice />}
+      </div>
+    );
+  }
   if (status === "error" && error) return <ApiErrorState error={error} onRetry={retry} title={errorTitle} />;
   if (status === "success") return <>{children}</>;
   return null;
@@ -168,7 +192,15 @@ function LeaderboardSkeleton() {
 
 // --- Hero --------------------------------------------------------------------
 
-function HeroSection({ featuredReplay, status }: { featuredReplay: FeaturedReplay | null; status: QueryStatus }) {
+function HeroSection({
+  featuredReplay,
+  status,
+  isSlow,
+}: {
+  featuredReplay: FeaturedReplay | null;
+  status: QueryStatus;
+  isSlow: boolean;
+}) {
   return (
     <SectionCard>
       <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -208,7 +240,10 @@ function HeroSection({ featuredReplay, status }: { featuredReplay: FeaturedRepla
 
         <div>
           {status === "loading" ? (
-            <Skeleton className="mx-auto h-72 w-72" />
+            <div className="flex flex-col items-center gap-3">
+              <Skeleton className="h-72 w-72" />
+              {isSlow && <ColdStartNotice />}
+            </div>
           ) : (
             <InteractiveHeroBoard replay={featuredReplay?.replay ?? null} />
           )}
