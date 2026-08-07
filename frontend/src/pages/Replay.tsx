@@ -12,6 +12,7 @@ import { ReplayTimeline } from "@/components/replay/ReplayTimeline";
 import { ReplayInfo } from "@/components/replay/ReplayInfo";
 import { getReplay, getReplays } from "@/api/replays";
 import { useApiQuery } from "@/hooks/useApiQuery";
+import { pickBestReplay } from "@/lib/replaySelection";
 import type { ReplayDetail } from "@/types/replay";
 
 const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
@@ -48,11 +49,7 @@ export function Replay() {
       return;
     }
     if (!replaysForAgent.some((r) => r.id === selectedReplayId)) {
-      // Prefer a win, then the longest episode, over plain array order --
-      // otherwise whichever replay happens to sort first (e.g. a 1-step
-      // loss) becomes the first thing a visitor sees for that agent.
-      const best = [...replaysForAgent].sort((a, b) => Number(b.won) - Number(a.won) || b.steps - a.steps)[0];
-      setSelectedReplayId(best.id);
+      setSelectedReplayId(pickBestReplay(replaysForAgent)!.id);
     }
   }, [replaysForAgent, selectedReplayId]);
 

@@ -21,10 +21,10 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Fields `rl/evaluation/replay.py`'s `build_race()` always writes -- a race
-# file missing any of these is treated as malformed rather than silently
-# rendered with gaps.
-REQUIRED_RACE_KEYS = {"id", "seed", "board_size", "mines", "initial_board", "agents"}
+# Fields `rl/evaluation/replay.py`'s `build_shared_race()` always writes -- a
+# race file missing any of these is treated as malformed rather than
+# silently rendered with gaps.
+REQUIRED_RACE_KEYS = {"id", "seed", "board_size", "mines", "turn_order", "initial_board", "turns", "won", "total_turns", "surviving_agents", "eliminated_agents"}
 
 
 class RaceLoaderError(Exception):

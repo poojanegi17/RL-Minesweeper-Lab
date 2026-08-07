@@ -18,7 +18,9 @@ def to_summary(raw: Dict[str, Any]) -> RaceSummary:
         seed=raw["seed"],
         board_size=raw["board_size"],
         mines=raw["mines"],
-        agents=list(raw["agents"].keys()),
+        turn_order=raw["turn_order"],
+        won=raw["won"],
+        total_turns=raw["total_turns"],
         generated_at=raw.get("generated_at"),
     )
 
@@ -29,9 +31,14 @@ def to_detail(raw: Dict[str, Any]) -> RaceDetail:
         seed=raw["seed"],
         board_size=raw["board_size"],
         mines=raw["mines"],
+        turn_order=raw["turn_order"],
         generated_at=raw.get("generated_at"),
         initial_board=raw["initial_board"],
-        agents=raw["agents"],
+        turns=raw["turns"],
+        won=raw["won"],
+        total_turns=raw["total_turns"],
+        surviving_agents=raw["surviving_agents"],
+        eliminated_agents=raw["eliminated_agents"],
     )
 
 
@@ -44,7 +51,7 @@ def list_races(loader: RaceLoader = Depends(get_race_loader)) -> List[RaceSummar
 
 @router.get("/{race_id}", response_model=RaceDetail)
 def get_race(race_id: str, loader: RaceLoader = Depends(get_race_loader)) -> RaceDetail:
-    """Full per-agent timelines for one race."""
+    """Full turn-by-turn timeline for one shared-board race."""
     try:
         raw = loader.get_race(race_id)
     except RaceNotFoundError as exc:

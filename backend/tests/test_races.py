@@ -25,17 +25,18 @@ def test_list_races_summary_fields(client: TestClient) -> None:
     assert race["seed"] == 1
     assert race["board_size"] == "3x3"
     assert race["mines"] == 1
-    assert set(race["agents"]) == {"Random", "CSP", "DQN"}
+    assert race["turn_order"] == ["Random", "CSP", "DQN"]
+    assert race["won"] is False
+    assert race["total_turns"] == 3
 
 
-def test_list_races_summary_never_includes_timelines(client: TestClient) -> None:
-    # The list view is deliberately lightweight -- per-agent timelines and
-    # the initial board belong to the detail endpoint only.
+def test_list_races_summary_never_includes_turns_or_board(client: TestClient) -> None:
+    # The list view is deliberately lightweight -- the turn-by-turn timeline
+    # and the initial board belong to the detail endpoint only.
     response = client.get("/api/races")
     for race in response.json():
+        assert "turns" not in race
         assert "initial_board" not in race
-        for agent_name in race["agents"]:
-            assert isinstance(agent_name, str)  # agents is List[str] here, not the detail's Dict[str, RaceAgentResult]
 
 
 def test_list_races_empty_when_races_dir_missing(empty_client: TestClient) -> None:
@@ -55,26 +56,38 @@ def test_get_race_detail_shape(client: TestClient) -> None:
     body = response.json()
     assert body["seed"] == 1
     assert body["initial_board"] == [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]]
-    assert set(body["agents"].keys()) == {"Random", "CSP", "DQN"}
+    assert len(body["turns"]) == 3
+    assert body["surviving_agents"] == ["CSP", "DQN"]
+    assert body["eliminated_agents"] == {"Random": 1}
 
 
-def test_get_race_detail_per_agent_results(client: TestClient) -> None:
+def test_get_race_detail_turn_shape_and_order(client: TestClient) -> None:
     response = client.get("/api/races/race_1")
-    agents = response.json()["agents"]
+    turns = response.json()["turns"]
 
-    assert agents["CSP"]["won"] is True
-    assert agents["Random"]["won"] is False
-    assert agents["DQN"]["experiment_id"] == "exp_test_dqn"
-    assert agents["CSP"]["experiment_id"] is None
+    assert [t["agent"] for t in turns] == ["Random", "CSP", "DQN"]
+    assert turns[0]["eliminated"] is True
+    assert turns[1]["eliminated"] is False
+    assert turns[0]["action"] == {"row": 0, "col": 0}
 
 
-def test_get_race_detail_per_agent_reasoning_shape(client: TestClient) -> None:
+def test_get_race_detail_eliminated_agents_fatal_cell_never_shown_revealed(client: TestClient) -> None:
     response = client.get("/api/races/race_1")
-    agents = response.json()["agents"]
+    body = response.json()
 
-    assert agents["CSP"]["steps"][0]["reasoning"]["deduction_type"] == "safe"
-    assert agents["DQN"]["steps"][0]["reasoning"] == {"q_value": 0.5}
-    assert agents["Random"]["steps"][0]["reasoning"] is None
+    # Random was eliminated at (0, 0), turn 1 -- confirm that cell stays
+    # hidden (-1) in every subsequent turn's board_state, per the fixture.
+    for turn in body["turns"]:
+        assert turn["board_state"][0][0] == -1
+
+
+def test_get_race_detail_reasoning_shape(client: TestClient) -> None:
+    response = client.get("/api/races/race_1")
+    turns = response.json()["turns"]
+
+    assert turns[1]["reasoning"]["deduction_type"] == "probability_guess"
+    assert turns[2]["reasoning"] == {"q_value": 0.5}
+    assert turns[0]["reasoning"] is None
 
 
 def test_get_race_detail_unknown_id_returns_404(client: TestClient) -> None:

@@ -1,0 +1,809 @@
+{
+  "id": "race_1",
+  "seed": 42,
+  "board_size": "5x5",
+  "mines": 5,
+  "generated_at": "2026-08-07T14:19:39.550241+00:00",
+  "turn_order": [
+    "Random",
+    "CSP",
+    "DQN",
+    "PPO"
+  ],
+  "initial_board": [
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "turns": [
+    {
+      "turn": 1,
+      "agent": "Random",
+      "action": {
+        "row": 2,
+        "col": 1
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": null
+    },
+    {
+      "turn": 2,
+      "agent": "CSP",
+      "action": {
+        "row": 4,
+        "col": 2
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (4, 2) is safe."
+      }
+    },
+    {
+      "turn": 3,
+      "agent": "DQN",
+      "action": {
+        "row": 2,
+        "col": 4
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          -1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.013356208801269531
+      }
+    },
+    {
+      "turn": 4,
+      "agent": "PPO",
+      "action": {
+        "row": 0,
+        "col": 2
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          -1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "action_probability": 0.2760438919067383
+      }
+    },
+    {
+      "turn": 5,
+      "agent": "Random",
+      "action": {
+        "row": 4,
+        "col": 1
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          -1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": null
+    },
+    {
+      "turn": 6,
+      "agent": "CSP",
+      "action": {
+        "row": 2,
+        "col": 3
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (2, 3) is safe."
+      }
+    },
+    {
+      "turn": 7,
+      "agent": "DQN",
+      "action": {
+        "row": 4,
+        "col": 3
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": true,
+      "reasoning": {
+        "q_value": -2.1082582473754883
+      }
+    },
+    {
+      "turn": 8,
+      "agent": "PPO",
+      "action": {
+        "row": 0,
+        "col": 1
+      },
+      "board_state": [
+        [
+          -1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "action_probability": 0.41980141401290894
+      }
+    },
+    {
+      "turn": 9,
+      "agent": "Random",
+      "action": {
+        "row": 3,
+        "col": 4
+      },
+      "board_state": [
+        [
+          -1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": null
+    },
+    {
+      "turn": 10,
+      "agent": "CSP",
+      "action": {
+        "row": 1,
+        "col": 4
+      },
+      "board_state": [
+        [
+          -1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          2
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (1, 4) is safe."
+      }
+    },
+    {
+      "turn": 11,
+      "agent": "PPO",
+      "action": {
+        "row": 3,
+        "col": 3
+      },
+      "board_state": [
+        [
+          -1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          2
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "action_probability": 0.4051843285560608
+      }
+    },
+    {
+      "turn": 12,
+      "agent": "Random",
+      "action": {
+        "row": 0,
+        "col": 3
+      },
+      "board_state": [
+        [
+          -1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          2
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": true,
+      "reasoning": null
+    },
+    {
+      "turn": 13,
+      "agent": "CSP",
+      "action": {
+        "row": 4,
+        "col": 4
+      },
+      "board_state": [
+        [
+          -1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          2
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (4, 4) is safe."
+      }
+    },
+    {
+      "turn": 14,
+      "agent": "PPO",
+      "action": {
+        "row": 4,
+        "col": 3
+      },
+      "board_state": [
+        [
+          -1,
+          1,
+          2,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          2
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": true,
+      "reasoning": {
+        "action_probability": 0.6162117719650269
+      }
+    },
+    {
+      "turn": 15,
+      "agent": "CSP",
+      "action": {
+        "row": 0,
+        "col": 4
+      },
+      "board_state": [
+        [
+          -1,
+          1,
+          2,
+          -1,
+          2
+        ],
+        [
+          1,
+          1,
+          2,
+          -1,
+          2
+        ],
+        [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          -1,
+          1,
+          1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "deduction_type": "safe",
+        "constraint_cells": null,
+        "remaining_mines": 0,
+        "mine_probability": null,
+        "inference": "Cell (0, 4) is safe."
+      }
+    }
+  ],
+  "won": true,
+  "total_turns": 15,
+  "surviving_agents": [
+    "CSP"
+  ],
+  "eliminated_agents": {
+    "DQN": 7,
+    "Random": 12,
+    "PPO": 14
+  }
+}

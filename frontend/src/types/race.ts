@@ -1,21 +1,23 @@
 /** Mirrors `backend/app/schemas/race.py`.
  *
- * A "race" is several agents' full timelines recorded on the *same* seed
- * (see `rl/evaluation/generate_race.py`) -- so every agent in one race
- * shares an identical mine layout. Reuses `ReplayStep` from `types/replay.ts`
- * for each agent's per-step timeline, same as the backend reuses
- * `schemas/replay.py`'s `ReplayStep`.
+ * A "race" is several agents taking turns on one *physically shared* board
+ * (see `rl/evaluation/shared_race.py`) -- not independent episodes matched
+ * by seed. Reuses `ReplayAction` from `types/replay.ts` for a turn's action.
  */
 
-import type { ReplayStep } from "@/types/replay";
+import type { ReplayAction } from "@/types/replay";
 
-export interface RaceAgentResult {
-  experiment_id: string | null;
-  steps: ReplayStep[];
-  won: boolean;
-  total_reward: number;
-  /** Total number of steps this agent's episode took. */
-  steps_taken: number;
+export interface RaceTurn {
+  turn: number;
+  agent: string;
+  action: ReplayAction;
+  /** The *shared* board immediately after this turn. Still `-1` at this
+   * turn's own cell when `eliminated` is true -- a fatal cell is never
+   * written into the board, only ever derivable from `action` + `eliminated`
+   * (same convention `ReplayDetail` already uses for a lost solo episode). */
+  board_state: number[][];
+  eliminated: boolean;
+  reasoning: Record<string, unknown> | null;
 }
 
 export interface RaceSummary {
@@ -23,8 +25,11 @@ export interface RaceSummary {
   seed: number;
   board_size: string;
   mines: number;
-  /** Display names of the agents recorded in this race, e.g. ["Random", "CSP", "DQN", "PPO"]. */
-  agents: string[];
+  /** Fixed round-robin turn order, e.g. ["Random", "CSP", "DQN", "PPO"]. */
+  turn_order: string[];
+  /** Whether the board was collectively cleared before every agent was eliminated. */
+  won: boolean;
+  total_turns: number;
   generated_at: string | null;
 }
 
@@ -33,8 +38,14 @@ export interface RaceDetail {
   seed: number;
   board_size: string;
   mines: number;
+  turn_order: string[];
   generated_at: string | null;
-  /** The all-hidden board before any agent acted -- identical for every agent in this race. */
+  /** The all-hidden board before any agent acted. */
   initial_board: number[][];
-  agents: Record<string, RaceAgentResult>;
+  turns: RaceTurn[];
+  won: boolean;
+  total_turns: number;
+  surviving_agents: string[];
+  /** Agent name -> the turn number that eliminated them. */
+  eliminated_agents: Record<string, number>;
 }

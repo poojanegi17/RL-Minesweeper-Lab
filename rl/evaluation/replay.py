@@ -239,43 +239,37 @@ def build_replay(
     }
 
 
-def build_race(
+def build_shared_race(
     *,
+    race_number: int,
     seed: int,
     board_size: str,
     mines: int,
     generated_at: str,
-    agent_episodes: Dict[str, Tuple[Optional[str], Dict[str, Any]]],
+    turn_order: List[str],
+    result: Dict[str, Any],
 ) -> Dict[str, Any]:
-    """Bundle several agents' episodes -- recorded on the *same* seed, so they share an
-    identical mine layout (see `environment.minesweeper.Minesweeper`: placement depends
-    only on the seed) -- into one race artifact.
+    """Assemble race metadata + a `shared_race.simulate_shared_race` result into
+    one race artifact -- several agents taking turns on one physically shared
+    board (see `evaluation.shared_race` for why this can't just be several
+    independent episodes matched by seed).
 
-    Args:
-        seed: The shared seed every episode in `agent_episodes` was recorded with.
-        agent_episodes: Maps display agent name (e.g. "DQN") to
-            `(experiment_id, episode)`, where `episode` is a `ReplayRecorder.record_episode`
-            result. `experiment_id` is `None` for agents with no checkpoint (Random, CSP).
-
-    `initial_board` is stored once at the top level (every agent's episode has the
-    identical board by construction) rather than duplicated per agent.
+    `race_number` (a plain 1, 2, 3... sequence) drives the id/filename,
+    decoupled from `seed` (the actual RNG seed the board was generated from,
+    kept in the payload for reproducibility) -- the same split `build_replay`
+    already uses between `episode_number` and `seed`.
     """
-    first_episode = next(iter(agent_episodes.values()))[1]
     return {
-        "id": f"race_{seed}",
+        "id": f"race_{race_number}",
         "seed": seed,
         "board_size": board_size,
         "mines": mines,
         "generated_at": generated_at,
-        "initial_board": first_episode["initial_board"],
-        "agents": {
-            agent_name: {
-                "experiment_id": experiment_id,
-                "steps": episode["steps"],
-                "won": episode["won"],
-                "total_reward": episode["total_reward"],
-                "steps_taken": episode["steps_taken"],
-            }
-            for agent_name, (experiment_id, episode) in agent_episodes.items()
-        },
+        "turn_order": turn_order,
+        "initial_board": result["initial_board"],
+        "turns": result["turns"],
+        "won": result["won"],
+        "total_turns": result["total_turns"],
+        "surviving_agents": result["surviving_agents"],
+        "eliminated_agents": result["eliminated_agents"],
     }

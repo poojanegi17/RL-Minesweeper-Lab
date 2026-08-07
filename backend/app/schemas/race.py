@@ -1,40 +1,41 @@
 """Schemas for race listing/detail endpoints (`GET /api/races[/{id}]`).
 
-A "race" is several agents' full timelines recorded on the *same* seed --
-see `rl/evaluation/generate_race.py` -- so every agent in one race bundle
-played the identical mine layout. Reuses `ReplayStep`/`ReplayAction` from
-`schemas/replay.py` rather than redeclaring an identical shape: a race
-agent's per-step timeline is exactly a replay's timeline, just nested one
-level deeper under the agent's name instead of being its own top-level
-resource.
+A "race" is several agents taking turns on one *physically shared* board --
+see `rl/evaluation/shared_race.py` for why that's a meaningfully different
+thing from several independent episodes matched by seed. Reuses
+`ReplayAction` from `schemas/replay.py` for a turn's action rather than
+redeclaring an identical `{row, col}` shape.
 
 Every field is declared explicitly (no `extra="allow"`), same security
-property as `schemas/replay.py`: a race file can never leak mine positions
-through this API even by accident, since `FastAPI`'s `response_model`
-re-serializes strictly through these fields.
+property as `schemas/replay.py`: an eliminated agent's fatal cell is only
+ever recoverable from that turn's own `action` + `eliminated` flag (exactly
+the same "derivable, never separately marked" convention `ReplayDetail`
+already uses for a lost episode's fatal move) -- it is never written into
+`board_state` at all, at generation time, for any turn, so there's nothing
+for this API to accidentally leak even if it wanted to.
 """
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from app.schemas.replay import ReplayStep
+from app.schemas.replay import ReplayAction
 
 
-class RaceAgentResult(BaseModel):
-    """One agent's full episode within a race -- everything `ReplayDetail` has
-    except `initial_board` (identical across every agent in the race, so it's
-    stored once on `RaceDetail` instead of duplicated per agent)."""
+class RaceTurn(BaseModel):
+    """One turn: which agent acted, what they chose, and the *shared* board
+    immediately after -- `eliminated` is true when this turn's action was a
+    mine (in which case `board_state` still shows that cell as hidden; see
+    module docstring)."""
 
-    experiment_id: Optional[str] = Field(
-        None, description="Which experiment's checkpoint this agent was loaded from, if applicable (DQN/PPO only)."
-    )
-    steps: List[ReplayStep]
-    won: bool
-    total_reward: float
-    steps_taken: int = Field(..., description="Total number of steps this agent's episode took.")
+    turn: int
+    agent: str
+    action: ReplayAction
+    board_state: List[List[int]]
+    eliminated: bool
+    reasoning: Optional[Dict[str, Any]] = None
 
 
 class RaceSummary(BaseModel):
@@ -44,7 +45,9 @@ class RaceSummary(BaseModel):
     seed: int
     board_size: str
     mines: int
-    agents: List[str] = Field(..., description="Display names of the agents recorded in this race, e.g. [\"Random\", \"CSP\", \"DQN\", \"PPO\"].")
+    turn_order: List[str] = Field(..., description="Fixed round-robin turn order, e.g. [\"Random\", \"CSP\", \"DQN\", \"PPO\"].")
+    won: bool = Field(..., description="Whether the board was collectively cleared before every agent was eliminated.")
+    total_turns: int
     generated_at: Optional[str] = None
 
 
@@ -55,6 +58,11 @@ class RaceDetail(BaseModel):
     seed: int
     board_size: str
     mines: int
+    turn_order: List[str]
     generated_at: Optional[str] = None
-    initial_board: List[List[int]] = Field(..., description="The all-hidden board before any agent acted -- identical for every agent in this race.")
-    agents: Dict[str, RaceAgentResult]
+    initial_board: List[List[int]] = Field(..., description="The all-hidden board before any agent acted.")
+    turns: List[RaceTurn]
+    won: bool
+    total_turns: int
+    surviving_agents: List[str]
+    eliminated_agents: Dict[str, int] = Field(..., description="Agent name -> the turn number that eliminated them.")

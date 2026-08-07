@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import { getReplay, getReplays } from "@/api/replays";
 import { useApiQuery, type QueryStatus } from "@/hooks/useApiQuery";
+import { pickBestReplay } from "@/lib/replaySelection";
 import type { ReplayDetail } from "@/types/replay";
 
 export interface UseAgentReplayResult {
-  /** The first recorded replay for `agentName`, or null while loading/on
-   * error/if none exists. */
+  /** The most representative recorded replay for `agentName` (see
+   * `pickBestReplay`), or null while loading/on error/if none exists. */
   replay: ReplayDetail | null;
   /** "success" only once both the replay list and the selected replay's
    * detail have loaded -- never "success" with a stale `replay` from a
@@ -21,11 +22,11 @@ export interface UseAgentReplayResult {
 
 /**
  * Fetches one representative recorded episode for a given agent: `GET
- * /api/replays` (list), then `GET /api/replays/{id}` (detail) for the first
- * match. Shared by every UI that shows "here's what {agent} actually did" --
- * `DecisionExample` (agent explainer pages) and `AIComparisonBoard` (home
- * page) both need exactly this chain, so it lives here once instead of
- * twice.
+ * /api/replays` (list), then `GET /api/replays/{id}` (detail) for the best
+ * match (see `pickBestReplay`). Shared by every UI that shows "here's what
+ * {agent} actually did" -- `DecisionExample` (agent explainer pages) and
+ * `AIComparisonBoard` (home page) both need exactly this chain, so it lives
+ * here once instead of twice.
  */
 export function useAgentReplay(agentName: string | null): UseAgentReplayResult {
   const {
@@ -35,10 +36,11 @@ export function useAgentReplay(agentName: string | null): UseAgentReplayResult {
     isSlow: listSlow,
     retry: retryList,
   } = useApiQuery(getReplays, []);
-  const replayId = useMemo(
-    () => (agentName ? (replays?.find((r) => r.agent === agentName)?.id ?? null) : null),
-    [replays, agentName],
-  );
+  const replayId = useMemo(() => {
+    if (!agentName || !replays) return null;
+    const forAgent = replays.filter((r) => r.agent === agentName);
+    return pickBestReplay(forAgent)?.id ?? null;
+  }, [replays, agentName]);
 
   const {
     data: replay,

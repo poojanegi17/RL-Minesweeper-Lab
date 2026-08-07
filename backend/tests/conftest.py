@@ -211,35 +211,43 @@ def _write_races(races_dir: Path) -> None:
         "seed": 1,
         "board_size": "3x3",
         "mines": 1,
+        "turn_order": ["Random", "CSP", "DQN"],
         "generated_at": "2026-01-01T00:00:00+00:00",
         "initial_board": [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]],
-        "agents": {
-            "Random": {
-                "experiment_id": None,
-                "steps": [{"step": 1, "board_state": [[0, -1, -1], [-1, -1, -1], [-1, -1, -1]], "action": {"row": 0, "col": 0}, "reward": 1.0, "done": False, "reasoning": None}],
-                "won": False,
-                "total_reward": -9.0,
-                "steps_taken": 1,
+        "turns": [
+            {
+                "turn": 1,
+                "agent": "Random",
+                "action": {"row": 0, "col": 0},
+                "board_state": [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]],
+                "eliminated": True,
+                "reasoning": None,
             },
-            "CSP": {
-                "experiment_id": None,
-                "steps": [{"step": 1, "board_state": [[0, -1, -1], [-1, -1, -1], [-1, -1, -1]], "action": {"row": 0, "col": 0}, "reward": 1.0, "done": False, "reasoning": {"deduction_type": "safe", "constraint_cells": None, "remaining_mines": 0, "mine_probability": None, "inference": "Cell (0, 0) is safe."}}],
-                "won": True,
-                "total_reward": 11.0,
-                "steps_taken": 1,
+            {
+                "turn": 2,
+                "agent": "CSP",
+                "action": {"row": 1, "col": 1},
+                "board_state": [[-1, -1, -1], [-1, 2, -1], [-1, -1, -1]],
+                "eliminated": False,
+                "reasoning": {"deduction_type": "probability_guess", "constraint_cells": None, "remaining_mines": None, "mine_probability": 0.2, "inference": "No safe cell deduced; guessing the lowest mine-probability cell (1, 1)."},
             },
-            "DQN": {
-                "experiment_id": "exp_test_dqn",
-                "steps": [{"step": 1, "board_state": [[0, -1, -1], [-1, -1, -1], [-1, -1, -1]], "action": {"row": 0, "col": 0}, "reward": 1.0, "done": False, "reasoning": {"q_value": 0.5}}],
-                "won": False,
-                "total_reward": -9.0,
-                "steps_taken": 1,
+            {
+                "turn": 3,
+                "agent": "DQN",
+                "action": {"row": 2, "col": 2},
+                "board_state": [[-1, -1, -1], [-1, 2, -1], [-1, -1, 1]],
+                "eliminated": False,
+                "reasoning": {"q_value": 0.5},
             },
-        },
+        ],
+        "won": False,
+        "total_turns": 3,
+        "surviving_agents": ["CSP", "DQN"],
+        "eliminated_agents": {"Random": 1},
     }
     (races_dir / "race_1.json").write_text(json.dumps(race))
 
-    # Malformed: missing required fields (e.g. no "agents").
+    # Malformed: missing required fields (e.g. no "turns").
     (races_dir / "incomplete_race.json").write_text(json.dumps({"id": "incomplete_race", "seed": 2}))
     # Malformed: invalid JSON.
     (races_dir / "broken_race.json").write_text("{not valid json")
