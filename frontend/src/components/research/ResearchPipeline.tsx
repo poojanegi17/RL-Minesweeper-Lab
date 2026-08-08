@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { PipelineNode } from "@/components/research/PipelineNode";
-import { PipelineConnector } from "@/components/research/PipelineConnector";
+import { PipelineFlowCard } from "@/components/research/PipelineFlowCard";
+import { LimitationConnector } from "@/components/research/LimitationConnector";
 import { ExperimentChamber } from "@/components/research/ExperimentChamber";
 import { useTheme } from "@/app/ThemeProvider";
 import { agentKindFromName, slugifyAgentName } from "@/lib/agentAdapters";
@@ -91,15 +91,15 @@ export function ResearchPipeline({ leaderboard, initialAgent }: ResearchPipeline
   const [openAgent, setOpenAgent] = useState<string | null>(
     initialAgent ? STEPS.find((step) => slugifyAgentName(step.agent) === initialAgent)?.agent ?? null : null,
   );
-  const chamberRef = useRef<HTMLDivElement>(null);
+  const openChamberRef = useRef<HTMLDivElement>(null);
   const hasEngaged = openAgent !== null;
 
   useEffect(() => {
     if (openAgent) {
-      chamberRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      openChamberRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
     // Only scroll on the initial deep-link open, not on every toggle -- avoids
-    // yanking the page around each time the visitor clicks a different node.
+    // yanking the page around each time the visitor clicks a different card.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -107,79 +107,64 @@ export function ResearchPipeline({ leaderboard, initialAgent }: ResearchPipeline
     const next = openAgent === agent ? null : agent;
     setOpenAgent(next);
     if (next) {
-      requestAnimationFrame(() => chamberRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+      requestAnimationFrame(() => openChamberRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
     }
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
-        {STEPS.map((step, index) => {
-          const kind = agentKindFromName(step.agent);
-          const accentColor = AGENT_HEX[kind][theme];
-          const winRate = leaderboard.find((entry) => entry.agent === step.agent)?.win_rate ?? null;
+    <div className="flex flex-col">
+      {STEPS.map((step, index) => {
+        const kind = agentKindFromName(step.agent);
+        const accentColor = AGENT_HEX[kind][theme];
+        const winRate = leaderboard.find((entry) => entry.agent === step.agent)?.win_rate ?? null;
+        const strategy = AGENT_EXPLAINERS[kind].tagline;
+        const isOpen = openAgent === step.agent;
+        const nextStep = STEPS[index + 1];
+        const nextTagline = nextStep ? AGENT_EXPLAINERS[agentKindFromName(nextStep.agent)].tagline : null;
+        const leaderboardEntry = leaderboard.find((entry) => entry.agent === step.agent);
 
-          return (
-            <div key={step.agent} className="flex flex-col items-center sm:contents">
-              <PipelineNode
-                title={step.title}
-                kind={kind}
-                accentColor={accentColor}
-                winRate={winRate}
-                onClick={() => toggle(step.agent)}
-                isOpen={openAgent === step.agent}
-                index={index}
-              />
-              {index < STEPS.length - 1 && (
-                <>
-                  <div className="sm:hidden">
-                    <PipelineConnector orientation="vertical" active={hasEngaged} />
-                  </div>
-                  <div className="hidden sm:block">
-                    <PipelineConnector orientation="horizontal" active={hasEngaged} />
-                  </div>
-                </>
+        return (
+          <div key={step.agent} className="flex flex-col">
+            <PipelineFlowCard
+              title={step.title}
+              kind={kind}
+              accentColor={accentColor}
+              strategy={strategy}
+              winRate={winRate}
+              onClick={() => toggle(step.agent)}
+              isOpen={isOpen}
+              index={index}
+            />
+
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div
+                  ref={openChamberRef}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface/60 p-5 sm:p-7"
+                >
+                  <ExperimentChamber
+                    agentName={step.agent}
+                    kind={kind}
+                    accentColor={accentColor}
+                    whyAttempted={step.whyAttempted}
+                    researchQuestion={step.researchQuestion}
+                    limitation={step.limitation}
+                    researchDecision={step.researchDecision}
+                    nextTagline={nextTagline}
+                    leaderboardEntry={leaderboardEntry}
+                  />
+                </motion.div>
               )}
-            </div>
-          );
-        })}
-      </div>
+            </AnimatePresence>
 
-      <div ref={chamberRef}>
-        <AnimatePresence mode="wait">
-          {STEPS.map((step, index) => {
-            if (openAgent !== step.agent) return null;
-            const kind = agentKindFromName(step.agent);
-            const accentColor = AGENT_HEX[kind][theme];
-            const nextStep = STEPS[index + 1];
-            const nextTagline = nextStep ? AGENT_EXPLAINERS[agentKindFromName(nextStep.agent)].tagline : null;
-            const leaderboardEntry = leaderboard.find((entry) => entry.agent === step.agent);
-
-            return (
-              <motion.div
-                key={step.agent}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="overflow-hidden rounded-2xl border border-border bg-surface/60 p-5 sm:p-7"
-              >
-                <ExperimentChamber
-                  agentName={step.agent}
-                  kind={kind}
-                  accentColor={accentColor}
-                  whyAttempted={step.whyAttempted}
-                  researchQuestion={step.researchQuestion}
-                  limitation={step.limitation}
-                  researchDecision={step.researchDecision}
-                  nextTagline={nextTagline}
-                  leaderboardEntry={leaderboardEntry}
-                />
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-      </div>
+            {index < STEPS.length - 1 && <LimitationConnector limitation={step.limitation} active={hasEngaged} />}
+          </div>
+        );
+      })}
     </div>
   );
 }
