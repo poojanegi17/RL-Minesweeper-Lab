@@ -3,13 +3,13 @@ import { Select } from "@/components/ui/Select";
 import { cn } from "@/lib/cn";
 import type { BoardLevelInfo } from "@/types/boardConfig";
 
-const LEVEL_LABELS: Record<string, string> = {
+export const LEVEL_LABELS: Record<string, string> = {
   beginner: "Beginner",
   intermediate: "Intermediate",
   expert: "Expert",
 };
 
-const DENSITY_LABELS: Record<string, string> = {
+export const DENSITY_LABELS: Record<string, string> = {
   sparse: "Sparse",
   standard: "Standard",
   dense: "Dense",

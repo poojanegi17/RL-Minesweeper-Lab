@@ -4,13 +4,11 @@ import { ArrowRight, Quote, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
 import { ApiErrorState } from "@/components/ui/ApiErrorState";
-import { LevelDensitySelector } from "@/components/board/LevelDensitySelector";
 import { ExperimentSetup } from "@/components/research/ExperimentSetup";
 import { ExperimentComparison } from "@/components/research/ExperimentComparison";
 import { getExperiment } from "@/api/experiments";
-import { getExperimentMetrics, getLeaderboard } from "@/api/metrics";
+import { getExperimentMetrics } from "@/api/metrics";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { useBoardLevel } from "@/hooks/useBoardLevel";
 import { slugifyAgentName } from "@/lib/agentAdapters";
 import { isFamilySummary } from "@/lib/experimentAdapters";
 import type { AgentKind } from "@/data/types";
@@ -88,39 +86,8 @@ export function ExperimentChamber({
   nextTagline,
   leaderboardEntry,
 }: ExperimentChamberProps) {
-  // This chamber's own level/density selection -- independent of every
-  // other agent's chamber and of the pipeline row above (which always shows
-  // the default board). At the default beginner/standard board, the
-  // page-level `leaderboardEntry` prop (already fetched once for the whole
-  // pipeline) is reused as-is rather than re-fetching the same data.
-  const { configs, level, density, setLevel, setDensity } = useBoardLevel();
-  const isDefaultLevel = level === "beginner" && density === "standard";
-
-  const {
-    data: scopedLeaderboard,
-    status: scopedStatus,
-    error: scopedError,
-    isSlow: scopedSlow,
-    retry: retryScoped,
-  } = useApiQuery(() => (isDefaultLevel ? Promise.resolve(null) : getLeaderboard(level, density)), [level, density]);
-
-  const effectiveEntry = isDefaultLevel ? leaderboardEntry : scopedLeaderboard?.find((entry) => entry.agent === agentName);
-
-  const experimentId = effectiveEntry?.experiment_id ?? null;
+  const experimentId = leaderboardEntry?.experiment_id ?? null;
   const { data, status, error, isSlow, retry } = useApiQuery(() => fetchChamberData(experimentId), [experimentId]);
-
-  // Combines both fetches this chamber depends on -- the scoped leaderboard
-  // lookup (only actually in flight at a non-default level/density) and the
-  // chamber's own experiment data -- into one loading/error/retry surface,
-  // so switching levels doesn't flash a stale "no data" state while the
-  // scoped leaderboard entry is still resolving.
-  const metricsLoading = status === "loading" || (!isDefaultLevel && scopedStatus === "loading");
-  const metricsError = status === "error" ? error : !isDefaultLevel && scopedStatus === "error" ? scopedError : null;
-  const metricsSlow = isSlow || (!isDefaultLevel && scopedSlow);
-  function retryMetrics() {
-    retry();
-    if (!isDefaultLevel) retryScoped();
-  }
 
   const slug = slugifyAgentName(agentName);
   const [activeChapter, setActiveChapter] = useState(0);
@@ -171,13 +138,6 @@ export function ExperimentChamber({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-8">
-        {configs.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium tracking-wide text-text-muted uppercase">{agentName}'s board</span>
-            <LevelDensitySelector configs={configs} level={level} density={density} onLevelChange={setLevel} onDensityChange={setDensity} compact />
-          </div>
-        )}
-
         <Chapter index={1} title="Motivation" accentColor={accentColor} sectionRef={registerChapter(0)}>
           <p className="max-w-2xl text-sm text-text">{whyAttempted}</p>
           <div
@@ -192,15 +152,15 @@ export function ExperimentChamber({
           </div>
         </Chapter>
 
-        {metricsLoading && (
+        {status === "loading" && (
           <div className="flex flex-col gap-3">
             <Skeleton className="h-48 w-full" />
-            {metricsSlow && <ColdStartNotice />}
+            {isSlow && <ColdStartNotice />}
           </div>
         )}
-        {!metricsLoading && metricsError && <ApiErrorState error={metricsError} onRetry={retryMetrics} title="Couldn't load this experiment" />}
+        {status === "error" && error && <ApiErrorState error={error} onRetry={retry} title="Couldn't load this experiment" />}
 
-        {!metricsLoading && !metricsError && data && (
+        {status === "success" && data && (
           <>
             <Chapter index={2} title="Experiment Setup" accentColor={accentColor} sectionRef={registerChapter(1)}>
               <ExperimentSetup
@@ -215,11 +175,12 @@ export function ExperimentChamber({
             <Chapter index={3} title="Experiment Comparison" accentColor={accentColor} sectionRef={registerChapter(2)}>
               <ExperimentComparison
                 agentName={agentName}
+                kind={kind}
                 family={data.family}
                 variantDetails={data.variantDetails}
                 detail={data.detail}
                 metrics={data.metrics}
-                leaderboardEntry={effectiveEntry}
+                leaderboardEntry={leaderboardEntry}
                 accentColor={accentColor}
               />
             </Chapter>

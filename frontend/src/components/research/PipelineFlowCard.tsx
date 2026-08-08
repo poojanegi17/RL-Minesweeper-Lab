@@ -14,6 +14,10 @@ interface PipelineFlowCardProps {
   /** The algorithm's one-line "how it decides" tagline (`AGENT_EXPLAINERS[kind].tagline`) --
    * shown directly under the name so the strategy is visible without opening the chamber. */
   strategy: string;
+  /** The best win rate seen for this agent across every board size/density
+   * it's been evaluated at (see `lib/boardComparison.ts`), not just the
+   * default beginner/standard board -- the same "best" the chamber's own
+   * `BoardConfigComparisonTable` concludes with. */
   winRate: number | null;
   onClick: () => void;
   isOpen: boolean;
@@ -62,7 +66,7 @@ export function PipelineFlowCard({ title, kind, accentColor, strategy, winRate, 
             {winRate != null ? (
               <span className="hidden font-mono text-sm font-semibold tabular-nums sm:inline" style={{ color: accentColor }}>
                 {formatPercent(winRate)}
-                <span className="ml-1 text-[10px] font-normal text-text-muted">win rate</span>
+                <span className="ml-1 text-[10px] font-normal text-text-muted">best win rate</span>
               </span>
             ) : (
               <span className="hidden text-[11px] text-text-muted sm:inline">no data yet</span>

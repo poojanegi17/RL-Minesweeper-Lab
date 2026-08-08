@@ -1,6 +1,7 @@
 import { Trophy } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { AgentMetricsPanel } from "@/components/agents/AgentMetricsPanel";
+import { BoardConfigComparisonTable } from "@/components/research/BoardConfigComparisonTable";
 import { HyperparameterTable } from "@/components/experiment/HyperparameterTable";
 import { InvestigationNarrative } from "@/components/experiment/InvestigationNarrative";
 import { VariantComparisonTable } from "@/components/experiment/VariantComparisonTable";
@@ -13,11 +14,13 @@ import {
   formatReward,
   humanizeVariant,
 } from "@/lib/experimentAdapters";
+import type { AgentKind } from "@/data/types";
 import type { ExperimentDetail, ExperimentSummary, SummaryValue } from "@/types/experiment";
 import type { LeaderboardEntry, MetricsResponse } from "@/types/metrics";
 
 interface ExperimentComparisonProps {
   agentName: string;
+  kind: AgentKind;
   family: ExperimentSummary | null;
   variantDetails: ExperimentDetail[];
   detail: ExperimentDetail | null;
@@ -32,10 +35,18 @@ interface ExperimentComparisonProps {
  * conclusion rather than a bare dashboard: a synthesis sentence
  * (`InvestigationNarrative`) and a best-configuration highlight lead the
  * section, both derived from real `ExperimentSummary`/`RunBrief` fields.
+ * `BoardConfigComparisonTable` (every board size/density this agent has been
+ * evaluated at) always renders at the end, family or not -- Random/CSP have
+ * no experiment family at all, but do have real board-size results.
  */
-export function ExperimentComparison({ agentName, family, variantDetails, detail, metrics, leaderboardEntry, accentColor }: ExperimentComparisonProps) {
+export function ExperimentComparison({ agentName, kind, family, variantDetails, detail, metrics, leaderboardEntry, accentColor }: ExperimentComparisonProps) {
   if (!family) {
-    return <AgentMetricsPanel experiment={detail} metrics={metrics} leaderboardEntry={leaderboardEntry} />;
+    return (
+      <div className="flex flex-col gap-6">
+        <AgentMetricsPanel experiment={detail} metrics={metrics} leaderboardEntry={leaderboardEntry} />
+        <BoardConfigComparisonTable agentName={agentName} kind={kind} accentColor={accentColor} />
+      </div>
+    );
   }
 
   const narrative = buildInvestigationNarrative(family);
@@ -113,6 +124,8 @@ export function ExperimentComparison({ agentName, family, variantDetails, detail
       <VariantComparisonTable runs={family.runs} currentRunId={detail?.id} agent={agentName} />
 
       <AgentMetricsPanel experiment={detail} metrics={metrics} leaderboardEntry={leaderboardEntry} />
+
+      <BoardConfigComparisonTable agentName={agentName} kind={kind} accentColor={accentColor} />
     </div>
   );
 }

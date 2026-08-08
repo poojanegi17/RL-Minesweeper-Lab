@@ -6,6 +6,8 @@ import { ExperimentChamber } from "@/components/research/ExperimentChamber";
 import { useTheme } from "@/app/ThemeProvider";
 import { agentKindFromName, slugifyAgentName } from "@/lib/agentAdapters";
 import { AGENT_EXPLAINERS } from "@/lib/agentExplainers";
+import { bestWinRateFor, fetchAllBoardConfigLeaderboards } from "@/lib/boardComparison";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { AGENT_HEX } from "@/data/types";
 import type { LeaderboardEntry } from "@/types/metrics";
 
@@ -93,6 +95,11 @@ export function ResearchPipeline({ leaderboard, initialAgent }: ResearchPipeline
   );
   const openChamberRef = useRef<HTMLDivElement>(null);
   const hasEngaged = openAgent !== null;
+  // The best win rate each agent has seen across every board size/density
+  // it's been evaluated at, not just the default beginner/standard board
+  // (`leaderboard` prop) -- fetched once for the whole row, since a single
+  // `getLeaderboard(level, density)` call already covers every agent.
+  const { data: boardSnapshots } = useApiQuery(fetchAllBoardConfigLeaderboards, []);
 
   useEffect(() => {
     if (openAgent) {
@@ -116,7 +123,8 @@ export function ResearchPipeline({ leaderboard, initialAgent }: ResearchPipeline
       {STEPS.map((step, index) => {
         const kind = agentKindFromName(step.agent);
         const accentColor = AGENT_HEX[kind][theme];
-        const winRate = leaderboard.find((entry) => entry.agent === step.agent)?.win_rate ?? null;
+        const defaultWinRate = leaderboard.find((entry) => entry.agent === step.agent)?.win_rate ?? null;
+        const winRate = boardSnapshots ? (bestWinRateFor(step.agent, boardSnapshots) ?? defaultWinRate) : defaultWinRate;
         const strategy = AGENT_EXPLAINERS[kind].tagline;
         const isOpen = openAgent === step.agent;
         const nextStep = STEPS[index + 1];
