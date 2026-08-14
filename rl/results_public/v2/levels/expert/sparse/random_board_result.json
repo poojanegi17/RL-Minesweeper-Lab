@@ -1,0 +1,23 @@
+{
+  "agent": "Random",
+  "level": "expert",
+  "density": "sparse",
+  "rows": 16,
+  "cols": 16,
+  "mines": 30,
+  "env_version": "v2",
+  "env": {
+    "first_click_safe": "area",
+    "guarantee_solvable": false
+  },
+  "eval_episodes": 2000,
+  "win_rate": 0.0,
+  "win_rate_ci95": [
+    0.0,
+    0.192
+  ],
+  "avg_episode_length": 5.167,
+  "avg_reward": -5.833,
+  "failures": 2000,
+  "checkpoint_source": "levels/expert/standard"
+}

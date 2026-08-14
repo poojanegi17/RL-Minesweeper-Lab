@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Select } from "@/components/ui/Select";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/cn";
 import type { BoardLevelInfo } from "@/types/boardConfig";
 
@@ -76,13 +76,16 @@ export function LevelDensitySelector({ configs, level, density, onLevelChange, o
           })}
         </div>
 
-        <Select className="w-auto min-w-[8rem]" value={density} onChange={(e) => onDensityChange(e.target.value)} aria-label="Mine density">
-          {densityOptions.map((d) => (
-            <option key={d} value={d}>
-              {DENSITY_LABELS[d] ?? d} {activeConfig ? `(${activeConfig.densities[d]} mines)` : ""}
-            </option>
-          ))}
-        </Select>
+        <Dropdown
+          className="w-auto min-w-[10rem]"
+          value={density}
+          onChange={onDensityChange}
+          ariaLabel="Mine density"
+          options={densityOptions.map((d) => ({
+            value: d,
+            label: `${DENSITY_LABELS[d] ?? d}${activeConfig ? ` (${activeConfig.densities[d]} mines)` : ""}`,
+          }))}
+        />
 
         {activeConfig && (
           <span className="font-mono text-xs text-text-muted">

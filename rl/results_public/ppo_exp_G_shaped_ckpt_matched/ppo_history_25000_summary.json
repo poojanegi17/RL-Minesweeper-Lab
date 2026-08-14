@@ -1,0 +1,42 @@
+{
+  "episodes": 25000,
+  "rows": 5,
+  "cols": 5,
+  "mines": 5,
+  "reward_mode": "shaped",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_epsilon": 0.2,
+  "entropy_coef": 0.01,
+  "value_coef": 0.5,
+  "rollout_length": 256,
+  "ppo_epochs": 10,
+  "batch_size": 32,
+  "env_version": "v1",
+  "env": {
+    "first_click_safe": "none",
+    "guarantee_solvable": false
+  },
+  "eval_env": {
+    "first_click_safe": "none",
+    "guarantee_solvable": false
+  },
+  "seed": 42,
+  "eval_seed": 42,
+  "checkpoint_every": 2500,
+  "used_checkpoint": "best_policy.pt",
+  "best_checkpoint_metadata": {
+    "episode": 7500,
+    "win_rate": 0.04,
+    "average_reward": -10.099999999999996,
+    "average_episode_length": 3.44,
+    "timestamp": "2026-08-13T07:20:11.337898+00:00"
+  },
+  "train_seconds": 212.6,
+  "eval_episodes": 2000,
+  "win_rate": 0.011,
+  "avg_episode_length": 3.6965,
+  "avg_reward": -7.0835,
+  "failures": 1978
+}

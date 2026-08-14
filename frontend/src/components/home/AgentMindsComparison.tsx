@@ -12,8 +12,12 @@ import { LevelDensitySelector } from "@/components/board/LevelDensitySelector";
 import { getRace, getRaces } from "@/api/races";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useBoardLevel } from "@/hooks/useBoardLevel";
+import { FIRST_CLICK_POLICY_LABELS, type FirstClickPolicy } from "@/lib/boardLevelQuery";
+import { cn } from "@/lib/cn";
 
 const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
+
+const POLICIES: FirstClickPolicy[] = ["none", "area"];
 
 /**
  * "Different minds, same game" -- Random, CSP, DQN, and PPO take turns on
@@ -27,13 +31,17 @@ const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
  */
 export function AgentMindsComparison() {
   const { configs, level, density, setLevel, setDensity } = useBoardLevel();
+  // Defaults to "none" to match the rest of the site's default view. The two
+  // are different games, so races are never mixed across the toggle -- each
+  // policy reads its own tree.
+  const [policy, setPolicy] = useState<FirstClickPolicy>("none");
   const {
     data: races,
     status: listStatus,
     error: listError,
     isSlow: listSlow,
     retry: retryList,
-  } = useApiQuery(() => getRaces(level, density), [level, density]);
+  } = useApiQuery(() => getRaces(level, density, policy), [level, density, policy]);
 
   const [raceId, setRaceId] = useState<string | null>(null);
 
@@ -53,7 +61,10 @@ export function AgentMindsComparison() {
     error: raceError,
     isSlow: raceSlow,
     retry: retryRace,
-  } = useApiQuery(() => (raceId ? getRace(raceId, level, density) : Promise.resolve(null)), [raceId, level, density]);
+  } = useApiQuery(
+    () => (raceId ? getRace(raceId, level, density, policy) : Promise.resolve(null)),
+    [raceId, level, density, policy],
+  );
 
   const [stepIndex, setStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -82,6 +93,28 @@ export function AgentMindsComparison() {
         One shared board, four agents taking turns -- Random, CSP, DQN, and PPO. Whatever gets revealed stays
         revealed for everyone; a mistake only costs the agent who made it.
       </p>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex rounded-xl border border-border p-1" role="group" aria-label="Board distribution">
+          {POLICIES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setPolicy(option)}
+              aria-pressed={policy === option}
+              className={cn(
+                "rounded-lg px-3.5 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                policy === option ? "bg-primary text-white shadow-sm" : "text-text-muted hover:text-text",
+              )}
+            >
+              {FIRST_CLICK_POLICY_LABELS[option]}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-text-muted">
+          Under an unsafe opening the first agent to move can lose on turn one through no fault of its policy.
+        </p>
+      </div>
 
       {configs.length > 0 && (
         <LevelDensitySelector configs={configs} level={level} density={density} onLevelChange={setLevel} onDensityChange={setDensity} compact />

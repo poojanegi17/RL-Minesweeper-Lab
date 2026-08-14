@@ -22,9 +22,19 @@
   "used_checkpoint": "final_in_memory_weights",
   "best_checkpoint_metadata": null,
   "train_seconds": 1073.3,
-  "eval_episodes": 200,
-  "win_rate": 0.035,
-  "avg_episode_length": 4.39,
-  "avg_reward": -5.91,
-  "failures": 193
+  "eval_episodes": 2000,
+  "win_rate": 0.016,
+  "avg_episode_length": 4.458,
+  "avg_reward": -6.222,
+  "failures": 1968,
+  "win_rate_ci95": [
+    1.136,
+    2.25
+  ],
+  "evaluation_source": "reevaluate_checkpoints.py",
+  "bootstrap_target_masked": false,
+  "buffer_size": 20000,
+  "rows": 5,
+  "cols": 5,
+  "mines": 5
 }

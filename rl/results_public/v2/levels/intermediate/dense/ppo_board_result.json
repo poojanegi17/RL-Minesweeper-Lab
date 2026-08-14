@@ -1,0 +1,23 @@
+{
+  "agent": "PPO",
+  "level": "intermediate",
+  "density": "dense",
+  "rows": 9,
+  "cols": 9,
+  "mines": 18,
+  "env_version": "v2",
+  "env": {
+    "first_click_safe": "area",
+    "guarantee_solvable": false
+  },
+  "eval_episodes": 2000,
+  "win_rate": 0.0,
+  "win_rate_ci95": [
+    0.0,
+    0.192
+  ],
+  "avg_episode_length": 4.8865,
+  "avg_reward": -6.1135,
+  "failures": 2000,
+  "checkpoint_source": "ppo_intermediate_G_env_v2_fully_conv"
+}

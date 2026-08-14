@@ -5,6 +5,7 @@ import { Home } from "@/pages/Home";
 import { Agents } from "@/pages/Agents";
 import { AgentDetail } from "@/pages/AgentDetail";
 import { Research } from "@/pages/Research";
+import { LevelDetail } from "@/pages/LevelDetail";
 import { Compare } from "@/pages/Compare";
 import { Replay } from "@/pages/Replay";
 import { About } from "@/pages/About";
@@ -29,6 +30,7 @@ function App() {
             <Route path="/agents/:agentId" element={<AgentDetail />} />
             <Route path="/research" element={<Research />} />
             <Route path="/research/:agentSlug" element={<Research />} />
+            <Route path="/research/:agentSlug/:level" element={<LevelDetail />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/replay" element={<Replay />} />
             <Route path="/about" element={<About />} />

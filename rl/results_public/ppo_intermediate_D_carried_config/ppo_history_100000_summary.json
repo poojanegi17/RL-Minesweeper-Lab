@@ -1,0 +1,36 @@
+{
+  "episodes": 100000,
+  "rows": 9,
+  "cols": 9,
+  "mines": 12,
+  "reward_mode": "shaped",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_epsilon": 0.2,
+  "entropy_coef": 0.01,
+  "value_coef": 0.5,
+  "rollout_length": 256,
+  "ppo_epochs": 10,
+  "batch_size": 32,
+  "env_version": "v1",
+  "env": {
+    "first_click_safe": "none",
+    "guarantee_solvable": false
+  },
+  "eval_env": {
+    "first_click_safe": "none",
+    "guarantee_solvable": false
+  },
+  "seed": 42,
+  "eval_seed": 42,
+  "checkpoint_every": 5000,
+  "used_checkpoint": "final_in_memory_weights",
+  "best_checkpoint_metadata": null,
+  "train_seconds": 1275.0,
+  "eval_episodes": 2000,
+  "win_rate": 0.0,
+  "avg_episode_length": 4.806,
+  "avg_reward": -6.194,
+  "failures": 2000
+}

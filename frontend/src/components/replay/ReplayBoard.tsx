@@ -30,17 +30,22 @@ interface ReplayBoardProps {
 
 /**
  * Renders a real, data-driven Minesweeper board for the replay viewer.
- * Reuses `BoardIllustration`'s color/cell-treatment conventions (via the
- * exported `NUMBER_COLORS` map) rather than a separately invented palette --
- * `BoardIllustration` itself is a fixed, non-parameterized decorative
- * component and can't render arbitrary board data, so this is the one real
- * board-rendering component in the app, not a duplicate of anything.
+ * Reuses `BoardIllustration`'s clue-number color map (`NUMBER_COLORS`)
+ * rather than a separately invented palette -- `BoardIllustration` itself is
+ * a fixed, non-parameterized decorative component and can't render arbitrary
+ * board data, so this is the one real board-rendering component in the app.
+ *
+ * Tile colors are literal (not the site's `--color-surface`/`--color-primary`
+ * theme tokens) to match `LandingBackground`'s dark bevel/neon-blue tile
+ * treatment everywhere this board appears -- the whole site is one fixed
+ * dark aesthetic now (see `ThemeProvider`), so a real board and the ambient
+ * decorative one should look like the same game, not two different themes.
  */
 export function ReplayBoard({ board, highlightedCell, mineHit = false }: ReplayBoardProps) {
   const cols = board[0]?.length ?? 0;
 
   return (
-    <div className="inline-block rounded-xl border border-border bg-surface p-3 shadow-sm shadow-black/[0.02]">
+    <div className="inline-block rounded-xl border border-white/10 bg-black/30 p-3 backdrop-blur-md">
       <div
         className="inline-grid gap-[3px]"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -58,13 +63,15 @@ export function ReplayBoard({ board, highlightedCell, mineHit = false }: ReplayB
                   "flex h-10 w-10 items-center justify-center rounded-[5px] font-mono text-sm font-semibold transition-colors",
                   isHiddenCell &&
                     !isMineHitHere &&
-                    "bg-border/70 shadow-[inset_1px_1px_0_rgba(255,255,255,0.25),inset_-1px_-1px_0_rgba(0,0,0,0.12)] dark:shadow-[inset_1px_1px_0_rgba(255,255,255,0.06),inset_-1px_-1px_0_rgba(0,0,0,0.3)]",
-                  !isHiddenCell && !isMineHitHere && "border border-border/80 bg-background",
-                  isMineHitHere && "border border-red-500/50 bg-red-500/10",
-                  isHighlighted && !isMineHitHere && "ring-2 ring-primary ring-offset-1 ring-offset-surface",
+                    "border border-white/[0.07] bg-[linear-gradient(135deg,rgba(148,163,184,0.20),rgba(15,23,42,0.32))] shadow-[inset_1px_1px_0_rgba(255,255,255,0.09),inset_-1px_-1px_0_rgba(0,0,0,0.4)]",
+                  !isHiddenCell && !isMineHitHere && "border border-white/[0.06] bg-white/[0.06] shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]",
+                  isMineHitHere && "border border-red-400/50 bg-red-500/10",
+                  isHighlighted &&
+                    !isMineHitHere &&
+                    "ring-2 ring-[#00d2ff] ring-offset-1 ring-offset-black shadow-[0_0_10px_rgba(0,210,255,0.35)]",
                 )}
               >
-                {isMineHitHere && <Bomb className="h-4 w-4 text-red-500" />}
+                {isMineHitHere && <Bomb className="h-4 w-4 text-red-400" />}
                 {!isMineHitHere && !isHiddenCell && value > 0 && (
                   <span className={NUMBER_COLORS[value]}>{value}</span>
                 )}

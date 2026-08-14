@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
+@import "./styles/landing.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -70,13 +71,32 @@
 }
 
 @layer base {
+  /* Native controls -- the `<option>` list a `<select>` pops open, scrollbars,
+   * focus rings, date pickers -- are painted by the browser rather than by our
+   * CSS, and they follow `color-scheme` alone. No amount of styling the
+   * `<select>` element reaches them.
+   *
+   * This was `light dark`, which defers to the *operating system*, so an OS set
+   * to light popped a white option list over this dark UI. The site is dark
+   * only (see `ThemeProvider` -- there is no light mode and no toggle), so this
+   * is stated flatly rather than made conditional. It is also set here in CSS
+   * rather than alongside the `.dark` class `ThemeProvider` adds on mount,
+   * since that runs after first paint and would flash. */
   html {
-    color-scheme: light dark;
+    color-scheme: dark;
   }
+
 
   body {
     @apply bg-background text-text font-sans antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    /* Root-level, not on any inner div: `overflow-x` on a regular descendant
+     * div (as `.landing-page` had) makes that div a competing scroll
+     * container and silently breaks `position: sticky` for everything
+     * inside it, including `LandingNavbar`. `body` is a safe place for this
+     * because the browser propagates the root element's overflow to the
+     * viewport itself rather than creating a nested scrolling box. */
+    overflow-x: hidden;
   }
 
   h1,

@@ -29,6 +29,14 @@ class RunBrief(BaseModel):
     win_rate: Optional[float] = None
     avg_reward: Optional[float] = None
     metrics_available: bool
+    env_version: str = Field(
+        "v1",
+        description="Which board distribution this run trained under: \"v1\" (mines placed before "
+        "the first click, so the opening move can lose) or \"v2\" (first_click_safe=\"area\"). These "
+        "are different games and their win rates are not comparable, so a consumer picking a "
+        "\"best\" run must compare only within one. Runs predating the flag record no env_version "
+        "and are v1 by construction -- the setting did not exist to differ from.",
+    )
 
 
 class MetricsSummary(BaseModel):
@@ -72,13 +80,25 @@ class ExperimentSummary(BaseModel):
 
 
 class EvaluationMetrics(BaseModel):
-    """Final-evaluation numbers from an experiment's summary, if one exists."""
+    """Final-evaluation numbers from an experiment's summary, if one exists.
+
+    `win_rate_ci95` and `evaluation_source` are present only on summaries whose
+    evaluation was re-scored by `evaluation/reevaluate_checkpoints.py`. On a
+    summary still carrying the figure its training script originally wrote,
+    both are null -- which is itself the signal that the number rests on that
+    script's 200-episode default (see the README's "Evaluation sample size").
+    """
 
     win_rate: Optional[float] = None
     avg_reward: Optional[float] = None
     avg_episode_length: Optional[float] = None
     failures: Optional[int] = None
     eval_episodes: Optional[int] = None
+    # [low, high] as percentages -- a Wilson score interval, which unlike the
+    # normal approximation never falls below 0 for the rare-event win rates
+    # this benchmark produces.
+    win_rate_ci95: Optional[List[float]] = None
+    evaluation_source: Optional[str] = None
 
 
 class ArtifactManifest(BaseModel):
@@ -119,6 +139,7 @@ class ExperimentDetail(BaseModel):
     algorithm: str
     title: str = Field(..., description="Uses this run's variant suffix when it belongs to a family -- see RunBrief.title.")
     metrics_available: bool
+    env_version: str = Field("v1", description="Board distribution this run trained under -- see RunBrief.env_version.")
     techniques: List[str] = Field(default_factory=list)
     family_id: Optional[str] = Field(
         None, description="The family this run belongs to (GET /api/experiments/{family_id}), or null if it's standalone."

@@ -139,6 +139,7 @@ class DQNAgent:
         batch_size: int = 64,
         target_update_every: int = 25,
         min_replay_size: int = 200,
+        train_every: int = 1,
         network_size: str = "default",
         lr_schedule: Optional[LRSchedule] = None,
         rolling_window: int = 100,
@@ -163,8 +164,18 @@ class DQNAgent:
             min_replay_size: Minimum transitions collected before training
                 starts, so early batches aren't sampled from a handful of
                 highly correlated transitions.
+            train_every: Environment steps between gradient updates. The
+                default of 1 does one update per transition -- a replay ratio
+                four times what standard DQN uses, and the reason training
+                runs at roughly 100 steps/second here. Raising it to 4 spends
+                the same number of gradient updates on four times as much
+                collected experience for the same wall-clock budget, which at
+                a fixed time budget is strictly more data per update rather
+                than less training.
             network_size: Key into `models.dqn_network.NETWORK_PRESETS`
-                controlling conv-filter counts and hidden-layer width.
+                controlling conv-filter counts, hidden-layer width, and head
+                architecture. Prefer "fully_conv" for new work; the others
+                exist to reproduce this project's earlier experiments.
             lr_schedule: Optional list of `(episode_threshold, lr)` pairs (see
                 `resolve_scheduled_lr`). When given, `train()` updates the
                 optimizer's learning rate at the start of each episode
@@ -177,6 +188,8 @@ class DQNAgent:
         """
         if network_size not in NETWORK_PRESETS:
             raise ValueError(f"Unknown network_size {network_size!r}; choose from {list(NETWORK_PRESETS)}")
+        if train_every < 1:
+            raise ValueError(f"train_every must be at least 1, got {train_every!r}")
 
         self.rows = rows
         self.cols = cols
@@ -189,7 +202,11 @@ class DQNAgent:
         self.batch_size = batch_size
         self.target_update_every = target_update_every
         self.min_replay_size = min_replay_size
+        self.train_every = train_every
         self.network_size = network_size
+        # Counts environment steps across the whole run, not per episode, so
+        # short episodes don't each restart the train_every cycle.
+        self._steps_since_reset = 0
         self.lr_schedule: Optional[LRSchedule] = sorted(lr_schedule, key=lambda p: p[0]) if lr_schedule else None
         self.rolling_window = rolling_window
 
@@ -215,11 +232,18 @@ class DQNAgent:
         cell is always a wasted move (reward 0, no state change). When
         `explore` is False the agent acts greedily with respect to the current
         Q-values, which is what evaluation should use.
+
+        The action space is taken from `state` rather than from the agent's
+        own `n_actions`, so a network with a board-size-independent head (see
+        `NETWORK_PRESETS["fully_conv"]`) can be evaluated on a board larger
+        than the one it trained on. With a linear head the two are necessarily
+        equal anyway, so this costs nothing.
         """
         board = np.asarray(state)
+        n_actions = board.size
         hidden_actions = np.flatnonzero(board.flatten() == -1)
         if hidden_actions.size == 0:
-            return self._rng.randrange(self.n_actions)
+            return self._rng.randrange(n_actions)
 
         if explore and self._rng.random() < self.epsilon:
             return int(self._rng.choice(hidden_actions))
@@ -228,7 +252,7 @@ class DQNAgent:
             tensor = self._to_tensor(encode_observation(board)[None, ...])
             q_values = self.online_network(tensor).squeeze(0).cpu().numpy()
 
-        masked_q = np.full(self.n_actions, -np.inf, dtype=np.float32)
+        masked_q = np.full(n_actions, -np.inf, dtype=np.float32)
         masked_q[hidden_actions] = q_values[hidden_actions]
         return int(np.argmax(masked_q))
 
@@ -253,8 +277,44 @@ class DQNAgent:
         network (`Q_target(s', that_action)`). See the module docstring for
         why splitting these two roles across networks reduces overestimation
         bias relative to plain DQN's single-network `max`.
+
+        The argmax is restricted to cells still hidden in `s'`, using channel 0
+        of the encoding (which is exactly the hidden-cell mask -- the same
+        trick `PPOAgent._apply_action_mask` already used). This matters far
+        more than it looks:
+
+        `select_action` can never take an already-revealed cell, so those
+        actions receive no gradient from any real transition and their Q-values
+        are left unconstrained. An unmasked argmax then happily selects them,
+        and whatever drift they've accumulated is fed straight back in as a
+        bootstrap target -- which raises Q everywhere, which increases the
+        drift. Measured on this project's own checkpoints before the mask was
+        added, 40-67% of bootstrap targets were being taken from revealed
+        cells (well above the 15-24% of cells actually revealed, i.e. the
+        network really was over-valuing them), inflating the target by a mean
+        of 21 on the best 5x5 model and by ~15,700 on the diverged baseline's
+        final weights. That is a sufficient mechanism for the Q-value
+        divergence documented in the README, and explains why lowering the
+        learning rate only slowed it: a smaller step size slows the drift
+        without removing the feedback loop.
+
+        Runs recorded before this fix therefore cannot be reproduced by the
+        current code; their artifacts are kept as the pre-fix baseline.
         """
-        next_actions = self.online_network(next_states_t).argmax(dim=1)
+        next_q_online = self.online_network(next_states_t)
+        # Channel 0 of the encoding is the hidden-cell mask (see
+        # models.dqn_network.encode_observation).
+        hidden_mask = next_states_t[:, 0, :, :].reshape(next_states_t.shape[0], -1) > 0.5
+        masked_online = next_q_online.masked_fill(~hidden_mask, float("-inf"))
+        # A terminal next-state can legitimately have no hidden cells left (a
+        # win reveals every safe cell); masking everything would make argmax
+        # meaningless, so those rows fall back to the unmasked values. Their
+        # bootstrap term is multiplied by (1 - done) in `train_step` anyway.
+        no_hidden = ~hidden_mask.any(dim=1)
+        if bool(no_hidden.any()):
+            masked_online = torch.where(no_hidden.unsqueeze(1), next_q_online, masked_online)
+
+        next_actions = masked_online.argmax(dim=1)
         return self.target_network(next_states_t).gather(1, next_actions.unsqueeze(1)).squeeze(1)
 
     def train_step(self) -> Optional[Dict[str, float]]:
@@ -443,9 +503,11 @@ class DQNAgent:
                 next_observation, reward, terminated, truncated, info = env.step(action)
                 self.remember(observation, action, reward, next_observation, terminated or truncated)
 
-                metrics = self.train_step()
-                if metrics is not None:
-                    step_metrics.append(metrics)
+                self._steps_since_reset += 1
+                if self._steps_since_reset % self.train_every == 0:
+                    metrics = self.train_step()
+                    if metrics is not None:
+                        step_metrics.append(metrics)
 
                 observation = next_observation
                 total_reward += reward

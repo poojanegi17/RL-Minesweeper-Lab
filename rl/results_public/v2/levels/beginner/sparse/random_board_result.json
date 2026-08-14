@@ -1,0 +1,23 @@
+{
+  "agent": "Random",
+  "level": "beginner",
+  "density": "sparse",
+  "rows": 5,
+  "cols": 5,
+  "mines": 3,
+  "env_version": "v2",
+  "env": {
+    "first_click_safe": "area",
+    "guarantee_solvable": false
+  },
+  "eval_episodes": 2000,
+  "win_rate": 0.102,
+  "win_rate_ci95": [
+    8.949,
+    11.604
+  ],
+  "avg_episode_length": 3.2015,
+  "avg_reward": -5.7585,
+  "failures": 1796,
+  "checkpoint_source": null
+}

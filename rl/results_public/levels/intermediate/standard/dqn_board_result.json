@@ -1,0 +1,23 @@
+{
+ "agent": "DQN",
+ "level": "intermediate",
+ "density": "standard",
+ "rows": 9,
+ "cols": 9,
+ "mines": 12,
+ "env_version": "v1",
+ "env": {
+  "first_click_safe": "none",
+  "guarantee_solvable": false
+ },
+ "eval_episodes": 2000,
+ "win_rate": 0.5275,
+ "win_rate_ci95": [
+  50.562,
+  54.938
+ ],
+ "avg_episode_length": 16.602,
+ "avg_reward": 16.152,
+ "failures": 945,
+ "checkpoint_source": "dqn_intermediate_D_carried_config"
+}

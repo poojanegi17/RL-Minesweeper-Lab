@@ -47,15 +47,6 @@ export interface ArchitectureConfig {
   branches: ArchitectureBranchConfig[];
 }
 
-export type DecisionExampleConfig =
-  | { mode: "replay"; agentName: string }
-  | {
-      mode: "illustrative";
-      caption: string;
-      formula: string;
-      rows: { label: string; value: string }[];
-    };
-
 export interface AgentExplainerConfig {
   /** One-line "how it decides" summary -- punchier than the catalog description. */
   tagline: string;
@@ -71,8 +62,22 @@ export interface AgentExplainerConfig {
   architecture?: ArchitectureConfig;
   /** Keys into `CONCEPT_GLOSSARY` -- the algorithm-level facts this page explains. */
   concepts: string[];
-  decisionExample: DecisionExampleConfig;
 }
+
+/**
+ * Why there's no "best agent at this configuration" card to show -- only
+ * defined for the three kinds with `has_experiment_artifacts: false`
+ * (`AgentDetail.tsx` renders this exactly when that flag is false). DQN/PPO
+ * need no entry here since they always have a real trained checkpoint.
+ */
+export const NO_TRAINED_MODEL_EXPLANATION: Partial<Record<AgentKind, string>> = {
+  random:
+    "Random picks uniformly among hidden cells, with no learning and no memory between moves -- there's no trained model to call \"best\" at any configuration.",
+  "rule-based":
+    "CSP deduces safe cells and mines through logical constraint-satisfaction rules, not training -- there's no trained model to call \"best\" at any configuration.",
+  "q-learning":
+    "Q-Learning trains a table in memory during evaluation, but that table is never saved to disk -- there's no persisted model to call \"best\" at any configuration.",
+};
 
 /**
  * Short, accurate descriptions of algorithm concepts, keyed by label. Some
@@ -95,6 +100,8 @@ export const CONCEPT_GLOSSARY: Record<string, string> = {
     "An optional schedule that lowers the learning rate over the course of training, for finer-grained convergence later on.",
   "Reduced network capacity":
     "An ablation using a smaller network, to test how much model capacity matters independent of other changes.",
+  "Masked bootstrap target":
+    "Restricts the Double DQN bootstrap's argmax to cells still hidden. Revealed cells can never be chosen as actions, so their Q-values receive no gradient and drift freely; an unmasked argmax selects them and feeds that drift back in as a target, which is a self-reinforcing source of overestimation.",
   "Best-checkpoint deployment":
     "Evaluation uses whichever training checkpoint scored the best win rate, not just the final snapshot -- guards against a late unstable patch overwriting a good policy.",
   "Clipped-surrogate PPO":
@@ -108,11 +115,11 @@ export const CONCEPT_GLOSSARY: Record<string, string> = {
   "Epsilon-greedy exploration":
     "Acts randomly with probability epsilon (starting near 1.0, decaying toward a small floor), otherwise picks the highest-value known action -- balancing exploration against exploiting what's already learned.",
   "Tabular Q-table":
-    "Every distinct board pattern is its own lookup key in a plain dictionary -- nothing generalizes to a pattern the agent hasn't seen before, unlike a network's learned features.",
+    "Every distinct board pattern is its own lookup key in a plain dictionary -- nothing generalizes to a pattern the agent hasn't seen before, unlike a network's learned features. A state it has never visited returns all-zero Q-values, so every legal move ties and the greedy choice collapses to a uniform random pick: on an unseen board this agent *is* the Random baseline.",
   "Subset deduction rule":
     "If one constraint's cells are a subset of another's, the leftover cells must contain exactly the difference in mine counts -- often enough to resolve them too.",
   "Probability fallback":
-    "When no cell can be proven safe, the solver reveals whichever hidden cell has the lowest estimated mine probability instead of guessing blindly.",
+    "When no cell can be proven safe, the solver reveals whichever hidden cell has the lowest estimated mine probability instead of guessing blindly. The estimate is a heuristic, not exact: it averages each touching constraint's naive count/size rather than enumerating which mine layouts are actually consistent, so these are good guesses rather than optimal ones.",
   "Random baseline":
     "Picks uniformly among the hidden cells still on the board -- no state, no learning, no memory between moves. The floor every other agent is measured against.",
 };
@@ -139,12 +146,11 @@ export const AGENT_EXPLAINERS: Record<AgentKind, AgentExplainerConfig> = {
       },
       {
         title: "Select Safe Cell",
-        description: "Reveals a cell it has proven safe. With no certain move left, it falls back to the lowest estimated mine probability.",
+        description: "Reveals a cell it has proven safe, ties broken at random. With no certain move left it falls back to the lowest estimated mine probability -- which on the opening move means every cell scores alike, so the first click is a pure coin flip.",
         icon: Target,
       },
     ],
     concepts: ["Subset deduction rule", "Probability fallback"],
-    decisionExample: { mode: "replay", agentName: "CSP" },
   },
 
   "q-learning": {
@@ -157,7 +163,7 @@ export const AGENT_EXPLAINERS: Record<AgentKind, AgentExplainerConfig> = {
       },
       {
         title: "Action",
-        description: "Picks a hidden cell with epsilon-greedy selection: usually the highest known Q-value, occasionally random to keep exploring.",
+        description: "Picks a hidden cell with epsilon-greedy selection: usually the highest known Q-value, occasionally random to keep exploring. On a board pattern it has never seen, all Q-values are 0 and the tie is broken at random -- so \"greedy\" only means anything for states it has actually visited.",
         icon: Target,
       },
       {
@@ -173,16 +179,6 @@ export const AGENT_EXPLAINERS: Record<AgentKind, AgentExplainerConfig> = {
     ],
     pipelineLoops: true,
     concepts: ["Epsilon-greedy exploration", "Tabular Q-table"],
-    decisionExample: {
-      mode: "illustrative",
-      caption: "One application of the real update rule above -- not a value pulled from a specific recorded run.",
-      formula: "Q(s,a) ← Q(s,a) + α · (r + γ · max Q(s′,a′) − Q(s,a))",
-      rows: [
-        { label: "Before", value: "Q(s,a) = 0.20" },
-        { label: "Reward received", value: "+1" },
-        { label: "After update", value: "Q(s,a) = 0.35" },
-      ],
-    },
   },
 
   dqn: {
@@ -190,7 +186,7 @@ export const AGENT_EXPLAINERS: Record<AgentKind, AgentExplainerConfig> = {
     pipeline: [
       {
         title: "11-channel board encoding",
-        description: "Each cell's hidden/flag/0-8 state is one-hot encoded across 11 channels, instead of a single raw number.",
+        description: "Each cell is one-hot encoded across 11 channels -- a hidden mask, a revealed mask, and one channel per adjacent-mine count 0-8 -- instead of a single raw number. There is no flag channel, because the environment only exposes a reveal action.",
         icon: Layers,
       },
       {
@@ -209,12 +205,21 @@ export const AGENT_EXPLAINERS: Record<AgentKind, AgentExplainerConfig> = {
         ],
       },
     ],
-    concepts: ["Experience replay", "Target network", "Double DQN", "LR decay"],
-    decisionExample: { mode: "replay", agentName: "DQN" },
+    // "LR decay" deliberately excluded here despite existing in
+    // CONCEPT_GLOSSARY: `rl/agents/dqn_agent.py`'s own docstring says it's
+    // off by default ("a constant lr is used unless a schedule is
+    // explicitly given, so it's an isolated experiment rather than a silent
+    // behavior change"), and on disk it only ever ran as one retired
+    // ablation (`exp_C_lr_decay`, superseded, not even used by the flagship
+    // `dqn_intermediate_E_env_v2` run). This array is algorithm-level facts
+    // that are *always* true of DQN as implemented -- an opt-in experiment
+    // nobody currently uses doesn't belong next to Experience replay/Target
+    // network/Double DQN, which are unconditional.
+    concepts: ["Experience replay", "Target network", "Double DQN"],
   },
 
   ppo: {
-    tagline: "Learns a policy directly -- \"what should I do here\" -- instead of Q-values, using a second network to judge how good each state is.",
+    tagline: "Learns a policy directly -- \"what should I do here\" -- instead of Q-values, using a second head on the same network to judge how good each state is.",
     architecture: {
       input: {
         label: "Observation",
@@ -237,7 +242,6 @@ export const AGENT_EXPLAINERS: Record<AgentKind, AgentExplainerConfig> = {
       ],
     },
     concepts: ["Generalized Advantage Estimation (GAE)", "Clipped-surrogate PPO", "Entropy bonus"],
-    decisionExample: { mode: "replay", agentName: "PPO" },
   },
 
   random: {
@@ -255,6 +259,5 @@ export const AGENT_EXPLAINERS: Record<AgentKind, AgentExplainerConfig> = {
       },
     ],
     concepts: ["Random baseline"],
-    decisionExample: { mode: "replay", agentName: "Random" },
   },
 };

@@ -45,15 +45,52 @@ from app.config import BENCHMARK_BOARD_COLS, BENCHMARK_BOARD_MINES, BENCHMARK_BO
 
 logger = logging.getLogger(__name__)
 
+# Directories under `results_dir` that hold JSON but are not experiments, and
+# so must never be scanned by `_discover`. Each has its own loader and its own
+# endpoint; discovered as experiments they become phantom rows on
+# `GET /api/experiments` with `agent: "Unknown"` and no metrics -- which is
+# exactly what `races/` was doing, adding six of them and inflating the About
+# page's experiment count.
+#
+# `levels/`, `v1/` and `v2/` deliberately stay scannable: they hold no JSON
+# directly (only per-level subdirectories), so scanning them finds nothing,
+# and excluding them would be asserting something untrue about their shape.
+NON_EXPERIMENT_DIRS = frozenset({"replays", "races"})
+
 # Summary-JSON keys bucketed into the ExperimentDetail response's
 # `training_configuration` vs. `evaluation_metrics` groups; everything else
 # present in a summary (e.g. lr, gamma, network_size, clip_epsilon --
 # whatever a given agent happens to log) falls through to
 # `hyperparameters`, so a newly-added hyperparameter in some future
 # experiment script doesn't need a matching change here.
-_TRAINING_CONFIG_KEYS = {"episodes", "checkpoint_every", "used_checkpoint", "reward_mode", "train_seconds"}
-_EVALUATION_KEYS = {"win_rate", "avg_episode_length", "avg_reward", "failures", "eval_episodes"}
+_TRAINING_CONFIG_KEYS = {
+    "episodes",
+    "checkpoint_every",
+    "used_checkpoint",
+    "reward_mode",
+    "train_seconds",
+    # DQN only: whether the Double DQN bootstrap argmax was masked to hidden
+    # cells. A code-level property rather than a CLI flag, recorded in the
+    # summary so the frontend's variant diff can show it changing.
+    "bootstrap_target_masked",
+}
+_EVALUATION_KEYS = {
+    "win_rate",
+    "avg_episode_length",
+    "avg_reward",
+    "failures",
+    "eval_episodes",
+    # Written only by evaluation/reevaluate_checkpoints.py, never by the
+    # training scripts -- listed here so a re-scored summary's confidence
+    # interval and provenance land in evaluation_metrics rather than falling
+    # through to hyperparameters as unrecognized keys.
+    "win_rate_ci95",
+    "evaluation_source",
+}
 _BEST_CHECKPOINT_KEY = "best_checkpoint_metadata"
+# Consumed directly into ExperimentRecord.board/.mines (see _build_record),
+# not shown again as a hyperparameter row.
+_BOARD_KEYS = {"rows", "cols", "mines"}
 
 _ALGORITHM_INFO = {
     "DQN": {
@@ -185,15 +222,12 @@ class ResultsLoader:
         for child in sorted(self.results_dir.iterdir()):
             # "checkpoints_*" dirs hold .pt files, never experiment JSON, so
             # they're naturally skipped by the *.json glob regardless -- but
-            # "replays/" *does* hold JSON files (one per recorded episode,
-            # written by generate_replays.py), which would otherwise be
-            # misdiscovered as bogus experiments (e.g. "ppo_episode_1" with
-            # episodes=0, since a replay file has no "episodes" key and its
-            # top-level shape is a dict, not the row-list history.json
-            # expects). Excluded explicitly for that reason, not because it
-            # doesn't parse -- see services/replay_loader.py for the module
-            # that actually reads this directory.
-            if child.is_dir() and not child.name.startswith("checkpoints") and child.name != "replays":
+            # the directories in NON_EXPERIMENT_DIRS *do* hold JSON, which
+            # would otherwise be misdiscovered as bogus experiments. Excluded
+            # explicitly for that reason, not because they don't parse -- see
+            # services/replay_loader.py and services/race_loader.py for the
+            # modules that actually read them.
+            if child.is_dir() and not child.name.startswith("checkpoints") and child.name not in NON_EXPERIMENT_DIRS:
                 _scan(child, namespace_by_dir=True)
 
         return groups
@@ -228,12 +262,21 @@ class ResultsLoader:
             except (OSError, json.JSONDecodeError):
                 episodes = None
 
+        # Newer summaries (from `dqn_experiment.py`/`ppo_experiment.py` runs at a
+        # non-default board size) record their own rows/cols/mines; older
+        # summaries predate that and fall back to the fixed 5x5/5-mine
+        # benchmark constant every experiment used to run on exclusively.
+        rows = summary.get("rows")
+        cols = summary.get("cols")
+        mines = summary.get("mines")
+        board = f"{rows}x{cols}" if rows is not None and cols is not None else f"{BENCHMARK_BOARD_ROWS}x{BENCHMARK_BOARD_COLS}"
+
         return ExperimentRecord(
             id=experiment_id,
             agent=agent,
             episodes=episodes if episodes is not None else 0,
-            board=f"{BENCHMARK_BOARD_ROWS}x{BENCHMARK_BOARD_COLS}",
-            mines=BENCHMARK_BOARD_MINES,
+            board=board,
+            mines=mines if mines is not None else BENCHMARK_BOARD_MINES,
             seed=summary.get("seed"),
             timestamp=_iso_timestamp(timestamp_source) if timestamp_source else "",
             has_summary=summary_path is not None,
@@ -325,7 +368,7 @@ def split_summary_fields(summary: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     best_checkpoint = summary.get(_BEST_CHECKPOINT_KEY)
 
     for key, value in summary.items():
-        if key == _BEST_CHECKPOINT_KEY:
+        if key == _BEST_CHECKPOINT_KEY or key in _BOARD_KEYS:
             continue
         elif key in _TRAINING_CONFIG_KEYS:
             training_configuration[key] = value
@@ -394,6 +437,9 @@ _TECHNIQUE_RULES: Dict[str, List[Any]] = {
         ("LR decay", lambda summary: summary.get("lr_schedule") is not None),
         ("Reduced network capacity", lambda summary: summary.get("network_size") == "small"),
         ("Best-checkpoint deployment", lambda summary: str(summary.get("used_checkpoint", "")).startswith("best")),
+        # A code-level property recorded into the summary (see
+        # dqn_experiment.py); absent/False on every run made before the fix.
+        ("Masked bootstrap target", lambda summary: summary.get("bootstrap_target_masked") is True),
     ],
     "PPO": [
         ("Clipped-surrogate PPO", lambda summary: True),

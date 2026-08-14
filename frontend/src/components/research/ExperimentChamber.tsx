@@ -1,79 +1,34 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Quote, Sparkles } from "lucide-react";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { ColdStartNotice } from "@/components/ui/ColdStartNotice";
-import { ApiErrorState } from "@/components/ui/ApiErrorState";
 import { ExperimentSetup } from "@/components/research/ExperimentSetup";
-import { ExperimentComparison } from "@/components/research/ExperimentComparison";
-import { getExperiment } from "@/api/experiments";
-import { getExperimentMetrics } from "@/api/metrics";
-import { useApiQuery } from "@/hooks/useApiQuery";
+import { NarrativeText, type Narrative } from "@/components/research/NarrativeText";
 import { slugifyAgentName } from "@/lib/agentAdapters";
-import { isFamilySummary } from "@/lib/experimentAdapters";
 import type { AgentKind } from "@/data/types";
-import type { ExperimentDetail, ExperimentSummary } from "@/types/experiment";
-import type { LeaderboardEntry, MetricsResponse } from "@/types/metrics";
 import { cn } from "@/lib/cn";
 
 interface ExperimentChamberProps {
   agentName: string;
   kind: AgentKind;
   accentColor: string;
-  whyAttempted: string;
+  whyAttempted: Narrative;
   researchQuestion: string;
-  limitation: string;
-  researchDecision: string;
+  limitation: Narrative;
+  researchDecision: Narrative;
   /** The next node's real tagline, or null for the last node (PPO). */
   nextTagline: string | null;
-  leaderboardEntry: LeaderboardEntry | undefined;
 }
 
-interface ChamberData {
-  detail: ExperimentDetail | null;
-  metrics: MetricsResponse | null;
-  family: ExperimentSummary | null;
-  /** Full detail for every run in `family` (not just the leaderboard-linked
-   * one) -- powers each variant's own hypothesis/changes/training-config
-   * card in `ExperimentSetup`. Empty when there's no family. */
-  variantDetails: ExperimentDetail[];
-}
-
-const CHAPTER_TITLES = ["Motivation", "Experiment Setup", "Experiment Comparison", "Research Decision"];
-
-/** Mirrors `AgentDetail.tsx`'s `fetchAgentDetail` run-resolution, plus the old
- * `ExperimentDetail.tsx`'s family lookup -- both reused verbatim rather than
- * re-derived, just triggered lazily (on chamber open) instead of on page
- * load. Additionally resolves every sibling run's full detail so each
- * training variant can render as its own experiment card, not just the one
- * run the leaderboard happens to link to. */
-async function fetchChamberData(experimentId: string | null): Promise<ChamberData> {
-  if (!experimentId) return { detail: null, metrics: null, family: null, variantDetails: [] };
-
-  const resolved = await getExperiment(experimentId);
-  if (isFamilySummary(resolved)) return { detail: null, metrics: null, family: null, variantDetails: [] };
-
-  const [metrics, familyResolved] = await Promise.all([
-    getExperimentMetrics(experimentId),
-    resolved.family_id ? getExperiment(resolved.family_id) : Promise.resolve(null),
-  ]);
-
-  const family = familyResolved && isFamilySummary(familyResolved) ? familyResolved : null;
-  const variantDetails = family
-    ? (await Promise.all(family.runs.map((run) => getExperiment(run.id)))).filter(
-        (d): d is ExperimentDetail => !isFamilySummary(d),
-      )
-    : [];
-
-  return { detail: resolved, metrics, family, variantDetails };
-}
+const CHAPTER_TITLES = ["Motivation", "Experiment Setup", "Research Decision"];
 
 /**
  * One algorithm's research chapter: Motivation -> Experiment Setup ->
- * Experiment Comparison -> Research Decision. Every fact comes from real API
- * data (leaderboard + experiments); nothing here is invented per agent
- * beyond the hand-authored motivation/question/limitation/decision sentences
- * passed in from `ResearchPipeline`'s `STEPS`.
+ * Research Decision. Every fact comes from real API data (leaderboard +
+ * experiments -- `ExperimentSetup` and its `LevelPipeline`s resolve their
+ * own data independently, this component no longer pre-fetches anything);
+ * nothing here is invented per agent beyond the hand-authored
+ * motivation/question/limitation/decision sentences passed in from
+ * `ResearchPipeline`'s `STEPS`.
  */
 export function ExperimentChamber({
   agentName,
@@ -84,11 +39,7 @@ export function ExperimentChamber({
   limitation,
   researchDecision,
   nextTagline,
-  leaderboardEntry,
 }: ExperimentChamberProps) {
-  const experimentId = leaderboardEntry?.experiment_id ?? null;
-  const { data, status, error, isSlow, retry } = useApiQuery(() => fetchChamberData(experimentId), [experimentId]);
-
   const slug = slugifyAgentName(agentName);
   const [activeChapter, setActiveChapter] = useState(0);
   const chapterRefs = useRef<(HTMLElement | null)[]>([]);
@@ -106,7 +57,8 @@ export function ExperimentChamber({
     );
     chapterRefs.current.forEach((el) => el && observer.observe(el));
     return () => observer.disconnect();
-  }, [status]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function registerChapter(index: number) {
     return (el: HTMLElement | null) => {
@@ -139,7 +91,7 @@ export function ExperimentChamber({
 
       <div className="flex min-w-0 flex-1 flex-col gap-8">
         <Chapter index={1} title="Motivation" accentColor={accentColor} sectionRef={registerChapter(0)}>
-          <p className="max-w-2xl text-sm text-text">{whyAttempted}</p>
+          <NarrativeText value={whyAttempted} className="max-w-2xl text-sm text-text" />
           <div
             className="mt-3 flex max-w-2xl items-start gap-2.5 rounded-lg border bg-surface-hover/40 px-4 py-3"
             style={{ borderColor: `${accentColor}40` }}
@@ -152,49 +104,18 @@ export function ExperimentChamber({
           </div>
         </Chapter>
 
-        {status === "loading" && (
+        <Chapter index={2} title="Experiment Setup" accentColor={accentColor} sectionRef={registerChapter(1)}>
+          <ExperimentSetup agentName={agentName} kind={kind} accentColor={accentColor} />
+        </Chapter>
+
+        <Chapter index={3} title="Research Decision" accentColor={accentColor} sectionRef={registerChapter(2)}>
           <div className="flex flex-col gap-3">
-            <Skeleton className="h-48 w-full" />
-            {isSlow && <ColdStartNotice />}
-          </div>
-        )}
-        {status === "error" && error && <ApiErrorState error={error} onRetry={retry} title="Couldn't load this experiment" />}
-
-        {status === "success" && data && (
-          <>
-            <Chapter index={2} title="Experiment Setup" accentColor={accentColor} sectionRef={registerChapter(1)}>
-              <ExperimentSetup
-                agentName={agentName}
-                kind={kind}
-                family={data.family}
-                variantDetails={data.variantDetails}
-                accentColor={accentColor}
-              />
-            </Chapter>
-
-            <Chapter index={3} title="Experiment Comparison" accentColor={accentColor} sectionRef={registerChapter(2)}>
-              <ExperimentComparison
-                agentName={agentName}
-                kind={kind}
-                family={data.family}
-                variantDetails={data.variantDetails}
-                detail={data.detail}
-                metrics={data.metrics}
-                leaderboardEntry={leaderboardEntry}
-                accentColor={accentColor}
-              />
-            </Chapter>
-          </>
-        )}
-
-        <Chapter index={4} title="Research Decision" accentColor={accentColor} sectionRef={registerChapter(3)}>
-          <div className="flex flex-col gap-3">
-            <p className="max-w-2xl text-sm font-medium text-heading">{researchDecision}</p>
+            <NarrativeText value={researchDecision} className="max-w-2xl text-sm font-medium text-heading" />
 
             {limitation && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3">
                 <p className="text-xs font-medium tracking-wide text-amber-600 uppercase dark:text-amber-400">Limitation discovered</p>
-                <p className="mt-1 text-sm text-text">{limitation}</p>
+                <NarrativeText value={limitation} className="mt-1 text-sm text-text" />
               </div>
             )}
             {nextTagline ? (

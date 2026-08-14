@@ -1,0 +1,23 @@
+{
+  "agent": "DQN",
+  "level": "beginner",
+  "density": "standard",
+  "rows": 5,
+  "cols": 5,
+  "mines": 5,
+  "env_version": "v1",
+  "env": {
+    "first_click_safe": "none",
+    "guarantee_solvable": false
+  },
+  "eval_episodes": 2000,
+  "win_rate": 0.3855,
+  "win_rate_ci95": [
+    36.441,
+    40.703
+  ],
+  "avg_episode_length": 6.703,
+  "avg_reward": 3.413,
+  "failures": 1229,
+  "checkpoint_source": "exp_M_fully_conv"
+}

@@ -1,0 +1,72 @@
+{
+  "episodes": 100000,
+  "seed": 42,
+  "env_version": "v2",
+  "first_click_safe": "area",
+  "boards": {
+    "4x4 / 2 mines": {
+      "rows": 4,
+      "cols": 4,
+      "mines": 2,
+      "safe_cells": 14,
+      "episodes": 100000,
+      "states_updated": 771,
+      "total_updates": 281347,
+      "updated_once_pct": 31.26,
+      "mean_updates_per_state": 364.912,
+      "well_learned_states": 421,
+      "well_learned_update_share_pct": 99.74,
+      "well_learned_median_depth": 12,
+      "opening_visits": 100000,
+      "opening_q_spread": 3.9003
+    },
+    "5x5 / 3 mines (sparse)": {
+      "rows": 5,
+      "cols": 5,
+      "mines": 3,
+      "safe_cells": 22,
+      "episodes": 100000,
+      "states_updated": 12337,
+      "total_updates": 434695,
+      "updated_once_pct": 39.67,
+      "mean_updates_per_state": 35.235,
+      "well_learned_states": 1989,
+      "well_learned_update_share_pct": 94.89,
+      "well_learned_median_depth": 19,
+      "opening_visits": 100000,
+      "opening_q_spread": 6.7263
+    },
+    "5x5 / 5 mines (standard)": {
+      "rows": 5,
+      "cols": 5,
+      "mines": 5,
+      "safe_cells": 20,
+      "episodes": 100000,
+      "states_updated": 38206,
+      "total_updates": 462244,
+      "updated_once_pct": 42.67,
+      "mean_updates_per_state": 12.099,
+      "well_learned_states": 13914,
+      "well_learned_update_share_pct": 90.19,
+      "well_learned_median_depth": 17.0,
+      "opening_visits": 100000,
+      "opening_q_spread": 1.769
+    },
+    "5x5 / 8 mines (dense)": {
+      "rows": 5,
+      "cols": 5,
+      "mines": 8,
+      "safe_cells": 17,
+      "episodes": 100000,
+      "states_updated": 63872,
+      "total_updates": 406690,
+      "updated_once_pct": 55.79,
+      "mean_updates_per_state": 6.367,
+      "well_learned_states": 5338,
+      "well_learned_update_share_pct": 70.69,
+      "well_learned_median_depth": 12.0,
+      "opening_visits": 100000,
+      "opening_q_spread": 0.4382
+    }
+  }
+}

@@ -11,16 +11,27 @@ import { ReplayControls } from "@/components/replay/ReplayControls";
 import { ReplayTimeline } from "@/components/replay/ReplayTimeline";
 import { ReplayInfo } from "@/components/replay/ReplayInfo";
 import { LevelDensitySelector } from "@/components/board/LevelDensitySelector";
+import { EnvironmentToggle } from "@/components/compare/EnvironmentToggle";
+import { ReplayModelPanel } from "@/components/replay/ReplayModelPanel";
 import { getReplay, getReplays } from "@/api/replays";
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { useBoardLevel } from "@/hooks/useBoardLevel";
+import { useTheme } from "@/app/ThemeProvider";
+import { agentKindFromName } from "@/lib/agentAdapters";
 import { pickBestReplay } from "@/lib/replaySelection";
+import { type FirstClickPolicy } from "@/lib/boardLevelQuery";
+import { AGENT_HEX } from "@/data/types";
 import type { ReplayDetail } from "@/types/replay";
 
 const SPEED_MS: Record<number, number> = { 1: 900, 2: 450, 4: 225 };
 
 export function Replay() {
+  const { theme } = useTheme();
   const { configs, level, density, setLevel, setDensity } = useBoardLevel();
+  // Which board distribution to read. Sits above size/density for the same
+  // reason it does on the compare page: it changes the game rather than the
+  // configuration, and the episodes under it are a different set of files.
+  const [policy, setPolicy] = useState<FirstClickPolicy>("none");
 
   const {
     data: replays,
@@ -28,7 +39,7 @@ export function Replay() {
     error: listError,
     isSlow: listSlow,
     retry: retryList,
-  } = useApiQuery(() => getReplays(level, density), [level, density]);
+  } = useApiQuery(() => getReplays(level, density, policy), [level, density, policy]);
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [selectedReplayId, setSelectedReplayId] = useState<string | null>(null);
@@ -39,7 +50,7 @@ export function Replay() {
   useEffect(() => {
     setSelectedAgent(null);
     setSelectedReplayId(null);
-  }, [level, density]);
+  }, [level, density, policy]);
 
   const agentOptions = useMemo(() => Array.from(new Set((replays ?? []).map((r) => r.agent))).sort(), [replays]);
   const replaysForAgent = useMemo(
@@ -71,7 +82,10 @@ export function Replay() {
     error: detailError,
     isSlow: detailSlow,
     retry: retryDetail,
-  } = useApiQuery(() => (selectedReplayId ? getReplay(selectedReplayId, level, density) : Promise.resolve(null)), [selectedReplayId, level, density]);
+  } = useApiQuery(
+    () => (selectedReplayId ? getReplay(selectedReplayId, level, density, policy) : Promise.resolve(null)),
+    [selectedReplayId, level, density, policy],
+  );
 
   const [stepIndex, setStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -108,6 +122,8 @@ export function Replay() {
         </p>
       </div>
 
+      <EnvironmentToggle value={policy} onChange={setPolicy} />
+
       {configs.length > 0 && (
         <LevelDensitySelector configs={configs} level={level} density={density} onLevelChange={setLevel} onDensityChange={setDensity} />
       )}
@@ -137,7 +153,7 @@ export function Replay() {
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <label className="flex w-full flex-col gap-1.5 text-sm text-text-muted sm:max-w-xs">
               Agent
-              <Select value={selectedAgent ?? ""} onChange={(e) => setSelectedAgent(e.target.value)}>
+              <Select aria-label="Agent" value={selectedAgent ?? ""} onChange={(e) => setSelectedAgent(e.target.value)}>
                 {agentOptions.map((agent) => (
                   <option key={agent} value={agent}>
                     {agent}
@@ -147,7 +163,7 @@ export function Replay() {
             </label>
             <label className="flex w-full flex-col gap-1.5 text-sm text-text-muted sm:max-w-xs">
               Episode
-              <Select value={selectedReplayId ?? ""} onChange={(e) => setSelectedReplayId(e.target.value)}>
+              <Select aria-label="Episode" value={selectedReplayId ?? ""} onChange={(e) => setSelectedReplayId(e.target.value)}>
                 {replaysForAgent.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.id} ({r.won ? "WIN" : "loss"}, {r.steps} steps)
@@ -183,9 +199,21 @@ export function Replay() {
                 />
               </Card>
 
-              <Card>
-                <ReplayInfo replay={replay} currentStep={stepIndex === 0 ? null : replay.timeline[stepIndex - 1]} />
-              </Card>
+              <div className="flex flex-col gap-6">
+                <Card>
+                  <ReplayModelPanel
+                    agentName={replay.agent}
+                    level={level}
+                    density={density}
+                    policy={policy}
+                    replayExperimentId={replay.experiment_id}
+                    accentColor={AGENT_HEX[agentKindFromName(replay.agent)][theme]}
+                  />
+                </Card>
+                <Card>
+                  <ReplayInfo replay={replay} currentStep={stepIndex === 0 ? null : replay.timeline[stepIndex - 1]} />
+                </Card>
+              </div>
             </div>
           )}
         </>

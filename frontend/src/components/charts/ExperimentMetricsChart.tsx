@@ -37,6 +37,7 @@ export function ExperimentMetricsChart({ metrics }: ExperimentMetricsChartProps)
         <div key={s.key} className="rounded-xl border border-border p-4">
           <h3 className="mb-2 text-xs font-medium tracking-wide text-text-muted uppercase">{s.label}</h3>
           <MetricLineChart data={metrics.episodes} metricKey={s.key} />
+          <p className="mt-2 text-xs text-text-muted">{s.description}</p>
         </div>
       ))}
     </div>

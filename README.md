@@ -1,325 +1,430 @@
-# RL Minesweeper Lab
+# 🧠 RL Minesweeper Lab
 
-**An interactive reinforcement learning laboratory where multiple agents learn, fail, evolve, and get compared on Minesweeper.**
+Five agents learning (or deducing) Minesweeper on one shared benchmark, with every number on the
+site read live from a real recorded run.
 
-RL Minesweeper Lab pits five independent decision-making approaches — a random baseline, a
-logical constraint solver, tabular Q-Learning, a Deep Q-Network, and Proximal Policy
-Optimization — against the same game, on the same board, evaluated the same way. It's built
-with a custom Gymnasium-compatible Minesweeper environment, a FastAPI backend that serves real
-training artifacts, and a React frontend for exploring, replaying, and comparing how each agent
-actually thinks.
-
-This project isn't only about training agents to win. It's about **understanding why different
-algorithms succeed or fail** on the same problem — and showing that reasoning, not just a
-leaderboard number.
-
-**Stack:** React · TypeScript · Tailwind CSS · FastAPI · PyTorch · Gymnasium
-
-🔗 **Live Demo:** [rl-minesweeper-lab.vercel.app](https://rl-minesweeper-lab.vercel.app/) &nbsp;·&nbsp; 📦 **Repository:** [github.com/poojanegi17/RL-Minesweeper-Lab](https://github.com/poojanegi17/RL-Minesweeper-Lab)
-
-```
- Human ──▶ Environment ──▶ Observation ──▶ Agent ──▶ Action ──▶ Reward ──▶ Learning
-                                              ▲                              │
-                                              └──────────────────────────────┘
-```
+**Live:** [rl-minesweeper-lab.vercel.app](https://rl-minesweeper-lab.vercel.app/) · API on
+[Render](https://rl-minesweeper-lab.onrender.com)
 
 ---
 
-## 📖 Project Overview — Why Minesweeper?
+## 📖 What this is
 
-Minesweeper looks like a puzzle, but underneath it's a compact, controllable testbed for the
-exact problems that make sequential decision-making under uncertainty hard:
+Minesweeper is a good research board because it is two problems at once. Most of a game is
+**deducible** — a revealed `2` with two hidden neighbours proves both are mines. The rest is
+**irreducible uncertainty**, where more than one mine layout fits the clues and any move is a bet.
 
-- **Partial observability** — an agent never sees where the mines are, only revealed numbers
-  and hidden cells, exactly like a human player.
-- **Sequential decisions** — every reveal changes what's known and narrows future choices; it's
-  a chain of decisions, not a single classification.
-- **Uncertainty** — multiple mine layouts are often consistent with what's currently visible,
-  so the agent has to act under real ambiguity, not just noise.
-- **Delayed rewards** — a move's consequences (win or loss) can be many steps away from the
-  move that mattered.
-- **Exploration vs. exploitation** — a learning agent has to risk unknown cells to discover
-  what works, while still trying to survive.
+An agent can therefore be measured on two different things: how much of the board it can reason
+about, and how well it bets when reasoning runs out. This project compares five approaches on
+exactly that, under one evaluation protocol.
 
-Small board, fast episodes, and a well-defined win/loss condition — but every hard problem in
-RL shows up in miniature. That combination is why it's the environment here, not because it's
-a novel game to solve.
+The site is a read-only view over committed artifacts. Nothing is simulated in the browser and no
+figure is hand-typed into the UI — the API serves the same JSON the training scripts wrote.
 
 ---
 
-## 🖥️ Interactive Demo Features
+## 🤖 The five agents
 
-The frontend isn't a static writeup of results — it's a working lab.
-
-**Play Minesweeper yourself.** The exact same environment every agent trains on is playable in
-the browser, so you can feel the difficulty before seeing how any agent handles it.
-
-**Watch AI solve it.** A replay viewer steps through a real recorded episode move by move —
-board state, the action taken, and the reward received at each step, for any of Random, CSP,
-DQN, or PPO.
-
-**Compare agent minds.** The same board, five different reasoning processes: CSP's logical
-constraint deductions, Q-Learning and DQN's Q-value estimates, PPO's action probabilities, and
-Random's absence of any of the above — shown side by side, not just described.
-
-**Research journey.** Experiments aren't listed in a table and left there. Each algorithm is
-presented as an evolving story: why it was introduced, what was tested, what limitation showed
-up, and what that motivated next — see below.
-
----
-
-## 🧬 Research Journey — Algorithm Evolution
-
-```
-Random ──▶ CSP ──▶ Q-Learning ──▶ DQN ──▶ PPO
-```
-
-Five algorithms exist because each one answers a question the previous one couldn't.
-
-### Random Agent
-
-**Purpose:** a floor, not a contender. Picks uniformly among hidden cells, with no state, no
-memory, and no learning. Every other agent in this project is measured against it.
-
-### CSP Solver
-
-**Why introduced:** before reaching for machine learning at all, test how far pure logical
-deduction gets on a board that has real logical structure to exploit.
-
-- Builds a constraint from every revealed number ("exactly N of these hidden neighbors are
-  mines")
-- Applies deduction rules to find cells that are provably safe or provably mines
-- Falls back to the lowest estimated mine probability when nothing is provable
-
-**CSP is the strongest agent in this project (45.5% win rate)** — not because it's more
-sophisticated than the learned agents, but because Minesweeper genuinely contains solvable
-logical structure that deduction can exploit directly, without needing to learn it from
-experience first.
-
-### Q-Learning
-
-**Why introduced:** test whether a value-based method that *learns* from reward, rather than
-reasoning from rules, can compete — without the added complexity of a neural network yet.
-
-- Learns a Q-value for every (board state, action) pair from experience
-- Epsilon-greedy exploration, with the standard Bellman update
-
-**Limitation:** the table is keyed by the exact board pattern, so nothing generalizes between
-similar states. On this project's 5×5 benchmark board, the reachable state space is large
-enough that 20,000 training episodes visit almost every state exactly once — the agent ends up
-statistically indistinguishable from Random. (On a smaller 4×4/2-mine board, where states
-repeat, the same code reaches ~74% — confirming the algorithm itself works; it's the
-exact-match representation that doesn't scale.)
-
-### DQN
-
-**Why introduced:** replace the table with a function approximator that can generalize to board
-patterns it hasn't exactly seen before.
-
-**Architecture:** an 11-channel one-hot board encoding (hidden mask, revealed mask, one-hot
-revealed count 0–8) → a small CNN → one Q-value per cell, trained as **Double DQN** with
-experience replay and a target network.
-
-DQN wasn't trained once and reported — a dedicated stability investigation ran four
-single-variable experiments plus a combined configuration, all from the same seed:
-
-| Experiment | Problem addressed | Result |
+| Agent | How it decides | Learns? |
 |---|---|---|
-| Baseline (Double DQN) | — | 2.0% win rate; loss spikes unpredictably late in training |
-| + Best-checkpoint deployment | A good policy found mid-run being silently overwritten later | 3.0% — deploys whichever checkpoint actually scored best |
-| + Learning-rate decay | Loss spikes and TD-error instability late in training | **3.5%**, and loss stayed tightly bounded (vs. spiking 300× higher in the baseline) |
-| Smaller network | Capacity vs. stability tradeoff | 1.0% — more stable loss, but not enough capacity to learn a competitive policy |
-| Combined (LR decay + checkpointing) | Do the two fixes compound? | 2.0% — both help individually, but on this run the combination didn't beat LR decay alone (see repo history for the full analysis) |
+| **Random** | Uniform choice over hidden cells | No — the floor everything else is measured against |
+| **CSP** | Constraint propagation over revealed clues; probability estimate when it must guess | No — fixed logic, re-derived every move |
+| **Q-Learning** | Tabular value lookup keyed on the exact board pattern | Yes, but only for boards it has seen before |
+| **DQN** | Double DQN over an 11-channel encoding, experience replay + target network | Yes, generalizes across similar patterns |
+| **PPO** | Actor-critic, GAE, clipped-surrogate objective | Yes, on-policy |
 
-**Takeaway:** learning-rate decay was the more fundamental fix (it changes *why* loss diverges);
-checkpoint selection is a low-cost safety net that can't make training more stable but also
-can't hurt. Even the best DQN configuration remains far behind CSP on this board.
-
-### PPO
-
-**Why introduced:** explore a fundamentally different approach — learning a policy directly,
-via actor-critic policy optimization, instead of learning Q-values and deriving a policy from
-them.
-
-**Architecture:** the same 11-channel encoding feeds a shared CNN trunk, branching into an
-**actor head** (one action logit per hidden cell) and a **critic head** (a scalar state-value
-estimate), trained with Generalized Advantage Estimation and a clipped-surrogate objective.
-
-| Experiment | What changed | Win rate |
-|---|---|---|
-| Baseline | 6,000 episodes, default reward | 1.0% |
-| Longer training | 25,000 episodes, same reward | 0.5% — worse, despite 4× more training |
-| Reward shaping | Denser reward for larger cascades | **1.5%** — best result, corroborated by entropy and explained-variance trends, not just the win-rate number |
-| Reward shaping + checkpointing | Best checkpoint deployed | 1.5% — tied the final weights; no peak-then-degrade shape for checkpointing to rescue here |
-
-**Honest finding:** reward shaping is a real, validated improvement — but a modest one. PPO's
-best configuration (1.5%) still sits far below DQN's best (3.5%) and nowhere near CSP (45.5%).
-The critic's explained variance tops out under 11%, meaning sparse rewards and hard credit
-assignment remain only partially addressed, not solved.
+DQN and PPO share the same board encoding and episode budget, so a comparison between them is a
+comparison of the algorithms rather than of their inputs.
 
 ---
 
-## 🔬 Experiment Methodology
+## ⚠️ Two board distributions — read before comparing anything
 
-Every experiment in this project followed the same loop:
+Every result belongs to one of two environments. They are **different games** and their win rates
+must never be subtracted from one another.
 
-```
-Hypothesis ──▶ Implementation change ──▶ Training run ──▶ Evaluation ──▶ Learning
-```
+| | `first_click_safe` | What it means |
+|---|---|---|
+| **v1** | `none` | Mines are placed before the first click, so the opening move can lose outright. On a 5×5 board with 5 mines that is a 20% chance of an instant loss no policy could avoid. |
+| **v2** | `area` | The 3×3 block around the opening click is guaranteed mine-free — standard desktop Minesweeper behaviour. Every game starts from a cascade. |
 
-One variable changed at a time from a fixed baseline, so results are attributable rather than
-"we tried some things and it got better."
+A third flag, `guarantee_solvable`, resamples layouts until the board is clearable by deduction
+alone. It is **training-only**: evaluation always runs on unfiltered boards, because an agent never
+shown a forced guess has learned no way to handle one.
 
-**Metrics tracked per training run:**
-
-| DQN | PPO |
-|---|---|
-| Win rate | Win rate |
-| Reward | — |
-| Loss | Policy loss, value loss |
-| TD-error (mean / max) | Explained variance |
-| Q-value statistics | Entropy |
-| Gradient norm | — |
+The site has a toggle for this on every table, chart, replay and race. It never mixes the two.
 
 ---
 
 ## 🏁 Results
 
-Same 5×5, 5-mine board, evaluated identically (200 greedy episodes) for every agent:
+The benchmark board: **5×5, 5 mines, 2,000 greedy evaluation episodes, seed 42**. Every agent
+faces the identical 2,000 boards.
 
-| Agent | Win Rate | Notes |
+| Agent | v1 (opening can lose) | v2 (opening safe) |
 |---|---|---|
-| Random | 0.5% | Baseline floor |
-| **CSP** | **45.5%** | Strongest by far — exploits real logical structure in the game |
-| Q-Learning | 0.5% | Doesn't generalize past the exact states it's visited |
-| DQN | 1.0% | Best checkpoint, stabilized with learning-rate decay |
-| PPO | 0.5% | Shaped reward + best checkpoint |
+| **CSP** | **43.40%** | 70.35% |
+| **DQN** | 38.55% | **77.25%** |
+| **Q-Learning** | 1.90% | 71.70% |
+| **PPO** | 1.75% | 7.90% |
+| **Random** | 0.45% | 1.30% |
 
-In dedicated longer-training experiments (25,000 episodes instead of this table's matched
-6,000-episode budget), DQN's best configuration reached **3.5%** and PPO's best reached
-**1.5%** — both meaningfully better than their matched-budget numbers, and both still far below
-CSP.
+Two results here are worth stating plainly.
 
-**No RL agent in this project currently outperforms the CSP solver.** That's reported plainly,
-not hedged — the goal here was never only maximum win rate, it was understanding *why* each
-approach behaves the way it does on a board with strong exploitable logical structure.
+**A neural network beats the deduction solver.** On protected boards DQN reaches 77.25% against
+CSP's 70.35%. CSP is not a heuristic — it is explicit constraint propagation that proves cells safe.
 
----
-
-## 🏗️ System Architecture
-
-```
-        React Frontend
-              │
-              ▼
-       FastAPI Backend
-              │
-              ▼
-     Experiment Results
-              │
-              ▼
-   RL Agents + Replay Data
-```
-
-- **Frontend** — interactive visualization dashboard: agent explainer pages, the Research
-  Journey pipeline, and the replay viewer. Every page is driven by live API responses; nothing
-  is mocked.
-- **Backend** — a read-only FastAPI layer that serves experiment metadata, training metrics,
-  and replay timelines straight from the artifacts training runs wrote to disk. It never
-  trains or writes anything.
-- **RL** — the Gymnasium environment, all five agents, and the evaluation pipeline that
-  produces every result this app displays.
+**So does a lookup table.** Q-Learning has no generalization whatsoever; it returns all-zero values
+for a board it has not seen and picks at random. It reaches 71.70%, statistically indistinguishable
+from CSP (p = 0.35). A protected 5×5 opening simply repeats often enough to memorise — which is
+also why it collapses to 1.90% on v1, where the board distribution is far wider.
 
 ---
 
-## ⚙️ Technical Implementation
+## 📐 Across board sizes and densities
 
-### RL Environment
+Three board sizes × three mine densities. DQN and PPO are trained once per (level, environment) at
+standard density and evaluated at the other two **without retraining**, so density is the only
+variable within a row.
 
-- Gymnasium-compatible `reset`/`step` interface
-- Configurable board size and mine count
-- Seeded episodes for reproducible runs
-- 11-channel one-hot observation encoding (hidden mask, revealed mask, one-hot revealed count)
-- Two reward modes: `default` and `shaped` (denser signal for multi-cell cascade reveals)
+**v1 — opening click can lose**
 
-### Agent Implementations
+| Board | Mines | Random | Q-Learning | PPO | DQN | CSP |
+|---|---|---|---|---|---|---|
+| Beginner 5×5 | 3 | 7.30% | 58.10% | 18.55% | 70.35% | **74.45%** |
+| | 5 | 0.45% | 1.90% | 1.75% | 38.55% | **43.40%** |
+| | 8 | 0.00% | 0.00% | 0.00% | 3.30% | **10.75%** |
+| Intermediate 9×9 | 8 | 0.15% | — | 0.20% | 78.90% | **81.45%** |
+| | 12 | 0.00% | — | 0.00% | 52.75% | **60.90%** |
+| | 18 | 0.00% | — | 0.00% | 8.00% | **23.10%** |
+| Expert 16×16 | 30 | 0.00% | — | — | — | **72.65%** |
+| | 40 | 0.00% | — | — | — | **51.50%** |
+| | 60 | 0.00% | — | — | — | **6.30%** |
 
-| Agent | Approach | Purpose |
+**v2 — opening click safe**
+
+| Board | Mines | Random | Q-Learning | PPO | DQN | CSP |
+|---|---|---|---|---|---|---|
+| Beginner 5×5 | 3 | 10.20% | **91.20%** | 29.85% | 89.40% | 91.10% |
+| | 5 | 1.30% | 71.70% | 7.90% | **77.25%** | 70.35% |
+| | 8 | 0.15% | 0.60% | 0.95% | **38.90%** | 36.45% |
+| Intermediate 9×9 | 8 | 0.10% | — | 0.70% | 97.05% | **98.55%** |
+| | 12 | 0.00% | — | 0.00% | 80.15% | **89.95%** |
+| | 18 | 0.00% | — | 0.00% | 25.45% | **46.85%** |
+| Expert 16×16 | 30 | 0.00% | — | — | — | **95.05%** |
+| | 40 | 0.00% | — | — | — | **81.25%** |
+| | 60 | 0.00% | — | — | — | **12.75%** |
+
+**Why the dashes are there, not zeros.** Q-Learning is deliberately kept to 5×5 — its table is keyed
+on the exact board, and at 9×9 essentially no state ever repeats, so a larger run would measure
+nothing. DQN and PPO have no Expert run under the current recipe; those cells are blank rather than
+`0.00%` because nothing has been measured, which is a different claim from "measured and lost".
+
+**CSP is the only agent a bigger board helps.** Deductions per game climb steeply — 4.9 at
+Beginner, 20.5 at Intermediate, 72.3 at Expert — while forced guesses barely move (2.3 → 1.6 → 1.9).
+The deduction-to-guess ratio goes from about 2:1 to 37:1. More board means more structure for the
+constraint graph to exploit. That is the exact inverse of what happens to a learned representation.
+
+Density, not size, is what breaks every agent: CSP itself falls to 12.75% at Expert/Dense.
+
+---
+
+## 🔬 The research pipelines
+
+Each learned agent has a per-level pipeline on the Research page, told as a handful of **decisions**
+rather than one card per run. Every chapter reads its headline number from the API.
+
+### DQN — Beginner (5×5)
+
+| Chapter | What changed | Result |
 |---|---|---|
-| Random | Uniform random action | Performance floor |
-| CSP | Constraint propagation + probability fallback | Deterministic logical reasoning baseline |
-| Q-Learning | Tabular value learning | Learn from reward without a neural network |
-| DQN | CNN Q-value approximation, Double DQN, experience replay | Generalize across board patterns |
-| PPO | Actor-critic, GAE, clipped-surrogate objective | Learn a policy directly instead of Q-values |
+| **The baseline** | Double DQN, 25,000 episodes, nothing tuned | 11.40% |
+| **The ceiling was the budget** | Same configuration, 100,000 episodes | 21.25% |
+| **Three fixes that only work together** | `reward_scale` 0.1, `train_every` 4, `epsilon_decay` 0.9997, then the conv head | 37.90% → 38.55% |
+| **Changing the game, not the agent** | Trained on no-guess, first-click-safe boards | 77.25% |
 
-### Experiment Infrastructure
+Alongside the baseline, four standard levers were each measured against it — learning-rate decay
+(12.85%), reward shaping (11.80%), a longer exploration schedule (12.30%) and a deeper network
+(6.35%). None clears roughly 13%. That band looked like a ceiling and was not: the same
+configuration trained four times longer reaches 21.25%.
 
-- Checkpointing (best-scoring and final weights, both saved) for DQN and PPO
-- Dedicated evaluation scripts, separate from training
-- Per-episode metrics collection (reward, loss, win rate, and the agent-specific diagnostics
-  above)
-- Ablation-style experiment families — every DQN/PPO variant isolates exactly one change from
-  a shared baseline, so results are comparable
+The three optimization settings are the largest step in the pipeline, and they **only work
+together**. Applied without the reduced replay ratio, reward scaling and slower exploration score
+5.95% — worse than changing nothing at all. Their individual contributions sum to 48.85 points
+against a bundle worth 16.65.
 
-### Visualization Infrastructure
+The architecture change is a null on win rate: 38.55% against 37.90% (p = 0.67). It is kept because
+`fully_conv` is 29,089 parameters at *any* board size, which is what makes the next level possible.
 
-- Deterministic replay generation for real recorded episodes
-- Per-agent decision reasoning surfaced in the replay viewer (Q-values, action probabilities,
-  CSP's constraint deductions) — replay files never record mine locations, so nothing about
-  the visualization can leak hidden state
-- Interactive dashboards for agent comparison and the Research Journey
-- Real training curves, not illustrative placeholders
+The largest single gain came from the board rather than the agent. On a fixed first-click-safe
+benchmark the previous chapter's agent scores 54.90% and this one 77.25% — **22.35 points**, with
+disjoint confidence intervals, and not one line of the agent changed. Two caveats: the protected
+benchmark is an easier game in its own right (worth 16.35 points to an agent that never trained on
+one), and the two board settings moved together, so the no-guess curriculum and the safe opening are
+not separated.
 
----
+On its own training distribution — boards where a correct move always exists — that agent reaches
+**99.65%**, seven losses in 2,000.
 
-## 📊 Project Scale
+### DQN — Intermediate (9×9)
 
-| Metric | Value |
+| Chapter | Result |
 |---|---|
-| Agents implemented | 5 |
-| Experiments performed | 14 |
-| Total training episodes | ~298,000 |
-| Recorded replay episodes | 40 |
-| Automated tests | 214 (126 RL + 88 backend) |
+| The 5×5 recipe, carried unchanged | 52.75% |
+| The same board changes, at 9×9 | 80.15% |
+
+This level exists **because of the conv head**. The old Linear head was board-size-specific, so a
+5×5 model could not be built at 9×9 at all. The change that bought no accuracy at Beginner is what
+made the transfer possible.
+
+The bigger board is *easier* for this agent — 52.75% against 38.55% at 5×5 — because mine density is
+lower (14.8% against 20.0%) and a larger grid leaves more of the board constrained at any moment.
+But the advantage over deduction does not survive: at 5×5 this recipe beat CSP at two densities out
+of three; at 9×9 it trails CSP at all three. On solvable boards it reaches 92.75%, not the 99.65%
+seen at 5×5 — so it is now losing games it had the information to win.
+
+### PPO — Beginner (5×5)
+
+| Chapter | What changed | Result |
+|---|---|---|
+| **Stable, and barely above Random** | 25,000 episodes; reward shaping and checkpoint selection tried on top | 1.05% |
+| **Four times the budget changes nothing** | 100,000 episodes, plus a discount-factor control | 0.90% |
+| **The network, and the control it needed** | `fully_conv`, against a matched default-network control | 1.75% |
+| **The board is what was holding it back** | First click safe; no-guess and discount controls alongside | 7.90% |
+
+Every change made to the agent came back null. Reward shaping, checkpoint selection, four times the
+episodes and the architecture all land inside the noise band. The architecture is null twice: 0.65
+points on the original boards (p = 0.11) and 0.05 points once the opening is safe — 7.90% against
+7.95%, which is 158 wins against 159.
+
+Only the board moved it: **1.75% → 7.90%**, a 6.15-point gain and the largest effect in PPO's
+pipeline.
+
+Two things expected to help made it worse. Restricting training to no-guess boards is a real loss —
+10.80% against 13.30% on solvable boards, where the policy that never saw them does better on their
+own distribution (p = 0.017). Lowering the discount factor to DQN's 0.9 costs a further 4.85 points.
+
+One place the architecture does measurable work: on no-guess boards the conv head is worth 2.85
+points (p = 0.0023), having been worth nothing everywhere else. Why is unresolved — a narrower,
+more structured training distribution gives a position-specific Linear head more room to overfit
+than a translation-equivariant one, but nothing here tests that.
+
+PPO's best number anywhere is **13.30%**, on boards where a correct move always exists. DQN reaches
+99.65% on the same boards.
+
+### PPO — Intermediate (9×9)
+
+| Chapter | Result |
+|---|---|
+| The 5×5 recipe, carried unchanged | 0.00% (0.20% at sparse) |
+| The board change that worked everywhere else | 0.00% (0.70% at sparse) |
+
+Four configurations — both board settings, both networks — all at zero wins in 2,000, and 11 wins
+across 400,000 training episodes between them.
+
+The binding constraint is depth. A 9×9 win needs **69 correct reveals**; the median episode ends
+after 5 and the deepest ever recorded reached 36. It is not losing winnable games late — it never
+reaches a position where a win is in play.
+
+The architecture changes the *failure mode* without changing the outcome. On the default network the
+policy collapses to a confident non-winning habit (entropy 0.64). With `fully_conv` it never
+collapses at all, plays deeper (139 episodes per 100,000 reach 20+ moves against 29) and produces 11
+training wins against 1. None of it converts into an evaluation win.
+
+The comparison with DQN is what this level establishes: same board, same episode budget, same
+encoding, comparable gradient updates and now the same network — **52.75% and 80.15% against 0.00%
+and 0.00%**.
 
 ---
 
-## 📁 Repository Structure
+## 🔁 Zero-shot transfer
+
+Because `fully_conv` weights are board-size-independent, a 5×5 checkpoint can be loaded at 9×9 with
+no retraining. This is the first thing the conv head made testable.
+
+| Agent | Env | Sparse | Standard | Dense |
+|---|---|---|---|---|
+| **DQN** transferred from 5×5 | v1 | 53.00% | 26.75% | 2.05% |
+| DQN trained at 9×9 | v1 | 78.90% | 52.75% | 8.00% |
+| **DQN** transferred from 5×5 | v2 | 78.25% | 40.10% | 3.30% |
+| DQN trained at 9×9 | v2 | 97.05% | 80.15% | 25.45% |
+| **PPO** transferred from 5×5 | v2 | 1.05% | 0.05% | 0.00% |
+| PPO trained at 9×9 | v2 | 0.70% | 0.00% | 0.00% |
+
+DQN keeps roughly **half** its win rate on a board it never trained on; every one of those gaps is
+significant. PPO's transferred weights are level with its trained ones (1.05% against 0.70% at
+sparse is p = 0.31, not a difference this evidence carries).
+
+The asymmetry is the finding: skipping training costs DQN half its performance and costs PPO
+nothing measurable, because there is nothing at 9×9 that PPO manages to learn.
+
+Transfer figures are generalization results, not matched ones, and are labelled as such everywhere
+they appear.
+
+---
+
+## 🧩 Environment and encoding
+
+**Board encoding — 11 channels, one-hot.** A hidden mask, a revealed mask, and one channel per
+adjacent-mine count 0–8. Minesweeper's clue numbers are categorical, not continuous: a single scalar
+channel would place −1 (hidden) numerically next to 0 (revealed, no neighbouring mines), the two
+states it matters most to distinguish. There is no flag channel — the environment only exposes a
+reveal action.
+
+**Rewards.** `default` is +1 per safe reveal, −10 for a mine, +10 for a win. `shaped` adds 0.2 per
+extra cell a cascade opens with a sharper −15/+20. Shaped runs are always *evaluated* under the
+default reward so win rates stay comparable.
+
+**`reward_scale`** multiplies the reward before the loss sees it. At ±10 the TD targets sit outside
+Huber loss's quadratic regime, where its gradient is constant and large errors stop being penalised
+proportionally; scaling to ±1 puts them back inside it.
+
+**Solvability.** `guarantee_solvable` runs a deduction fixpoint (`environment/solvability.py`) and
+resamples until the board is clearable without guessing.
+
+---
+
+## 🏗️ Network presets
+
+| Preset | 5×5 | 9×9 | 16×16 | Head |
+|---|---|---|---|---|
+| `default` | 111,993 | 348,593 | 1,087,968 | Linear |
+| `deep` | 130,489 | 367,089 | 1,106,464 | Linear |
+| **`fully_conv`** | **29,089** | **29,089** | **29,089** | 1×1 conv |
+
+*(DQN counts. PPO's are the same shapes plus a critic head — 33,442 at every size for `fully_conv`,
+112,122 at 5×5 and 348,722 at 9×9 for `default`.)*
+
+The Linear head was never incidental overhead: it is 94% of the `default` network at 5×5 and 99.4%
+at 16×16. Replacing it with 1×1 convolutions changes three things at once — the parameter count
+stops scaling with board area, deduction rules become translation-equivariant (a `1` with one hidden
+neighbour means the same thing everywhere, so it is learned once instead of per position), and one
+set of weights runs at any board size.
+
+Two 3×3 convolutions give a **5×5 receptive field** — the whole board at Beginner, 31% at
+Intermediate. `fully_conv` deepens the stack to four layers for a 9×9 receptive field.
+
+`default` remains the default so every committed checkpoint still loads.
+
+---
+
+## 📏 Methodology
+
+**2,000 greedy episodes per figure, fixed evaluation seed 42.** On this benchmark a good agent wins
+1–40% of games, so the number of *wins* sets the precision, not the number of episodes. At 2,000
+episodes a 2% result carries a 95% interval about 1.2 points wide — narrow enough to separate a
+genuine 1.5× difference from noise. Evaluation costs seconds against minutes of training, so there
+is no reason to economise on it.
+
+**The same 2,000 boards for every agent** at a given cell, drawn from one fixed seed on a fresh
+environment no run trained in. Differences between agents are differences in play, not in luck of
+the draw.
+
+**Matched compute for DQN vs PPO.** PPO runs 10 epochs over each rollout at batch 32 — roughly
+123,000 gradient updates at Beginner and 150,000 at Intermediate, against DQN's 343,000 for the same
+100,000 episodes. The same order, rather than the 20× deficit an unmatched configuration produces.
+
+**Significance.** Comparisons quote Fisher exact p-values and 95% Wilson intervals. Where a
+difference is not significant, the text says so rather than implying it.
+
+**Seed variance is measured, and it is large.** Two DQN configurations were re-run at seeds 43 and
+44 (`results_public/seed_replication/`):
+
+| Configuration | seed 42 | seed 43 | seed 44 | mean | spread |
+|---|---|---|---|---|---|
+| Masked target | 11.40% | 12.85% | 12.25% | 12.17% | **1.45 pts** |
+| Masked target + LR decay | 12.85% | 8.40% | 10.85% | 10.70% | **4.45 pts** |
+
+A 4.45-point spread from the seed alone is **larger than several differences this project reports as
+real**, and it is a direct warning about how to read the Beginner tuning arms, which all sit inside
+a band of roughly 6 to 13 percent. The large effects — the training budget (+9.85), the three
+optimization fixes (+16.65), the board change (+22.35) — are comfortably outside it. The small ones
+should be treated as unresolved rather than as rankings.
+
+Every other figure on this page is a single run per configuration.
+
+**One measured caveat on precision.** The 100,000-episode DQN baseline scores 21.25% on its own
+2,000 evaluation boards and 19.15% on a different 2,000, so the evaluation set alone moves a figure
+by around two points.
+
+---
+
+## 💻 The application
+
+**Frontend** — React + TypeScript + Vite, Tailwind, framer-motion, Recharts.
+
+- **Home** — live leaderboard as a 3D card wheel, a shared-board race, a playable board with an
+  agent side-by-side, and the findings this project did not expect
+- **Research** — the five-algorithm pipeline and each agent's per-level chapters
+- **Agents / Compare / Replay** — per-agent detail, head-to-head comparison, and step-by-step
+  episode playback with each agent's own reasoning (Q-values, action probabilities, CSP deductions)
+
+**Backend** — FastAPI, read-only, no database. Routes: `agents`, `experiments`, `metrics`,
+`leaderboard`, `replays`, `races`, `board-configs`. Every route reads from `rl/results_public/` on
+each request; nothing is cached or re-saved.
+
+**Replays never record mine positions** — not even in metadata. Rather than storing hidden state and
+trusting every consumer not to surface it, the data is simply never written down.
+
+**What ships:** 37 experiment runs, 749 replay episodes, 108 shared-board races, and the full
+board-size × density grid under both environments. 297 RL tests and 127 backend tests.
+
+**Committed histories are subsampled.** A 100,000-episode run writes a ~40 MB history JSON, and
+shipping those at full resolution would put over a gigabyte of artifacts in git — permanently, since
+every re-run would add another copy. `rl/evaluation/compact_public_histories.py` keeps 2,000 evenly
+spaced rows per history, which is more than the charts render and 98% smaller.
+
+It **subsamples** rather than averages: every row kept is a row the training loop actually wrote,
+with its original episode number, and the first and last are always kept. A chart's x-axis still
+runs the full length of the run and every plotted point is a real episode. The full-resolution
+originals stay in the gitignored `rl/results/`.
+
+```bash
+cd rl
+python -m evaluation.compact_public_histories --dry-run   # report, change nothing
+python -m evaluation.compact_public_histories             # compact in place
+```
+
+---
+
+## 📁 Repository structure
 
 ```
-RL Minesweeper Lab/
-├── frontend/               # React + TypeScript UI
+├── frontend/                 # React + TypeScript + Vite
 │   └── src/
 │       ├── api/              # Backend API client
-│       ├── components/       # agent/, research/, replay/, charts/, about/, ui/
-│       ├── pages/             # Home, Agents, AgentDetail, Research, Replay, About
-│       └── lib/                # Adapters between API data and the UI
+│       ├── components/       # landing/, agent/, research/, replay/, compare/, race/, charts/, ui/
+│       ├── pages/            # Home, Agents, AgentDetail, Research, Compare, Replay, About
+│       └── lib/              # Adapters between API data and the UI
 │
-├── backend/                # FastAPI read-only serving layer over rl/results_public/
+├── backend/                  # FastAPI read-only serving layer
 │   └── app/
-│       ├── routes/            # agents / experiments / metrics / leaderboard / replays
-│       └── services/          # results_loader.py, replay_loader.py
+│       ├── routes/           # agents / experiments / metrics / leaderboard / replays / races / board-configs
+│       └── services/         # results_loader, replay_loader, race_loader, board_result_loader
 │
-└── rl/                     # Python RL environment and agents
-    ├── environment/           # Game engine + Gymnasium wrapper
-    ├── agents/                 # random, csp, q_learning, dqn, ppo
-    ├── models/                  # DQN / PPO networks
-    ├── evaluation/              # Training scripts, comparisons, replay generation
-    ├── results_public/          # Deployment-safe artifact subset (committed) -- summaries, chart metrics, replays
-    ├── results/                 # Full local training output (gitignored) -- checkpoints, CSVs, raw dumps
-    └── tests/                   # Pytest suite
+└── rl/                       # Python RL environment and agents
+    ├── environment/          # Game engine, Gymnasium wrapper, solvability fixpoint
+    ├── agents/               # random, csp, q_learning, dqn, ppo
+    ├── models/               # DQN / PPO networks and presets
+    ├── evaluation/           # Training, evaluation, replay/race generation, re-scoring
+    ├── results_public/       # Committed, deployment-safe artifacts the API serves
+    │   ├── v1/levels/        # Board grid, unprotected opening
+    │   └── v2/levels/        # Same grid, first click safe -- NOT comparable to v1
+    ├── results/              # Full local output (gitignored) -- checkpoints, CSVs, raw dumps
+    ├── analysis/             # Structural analyses and re-scoring reports
+    └── tests/                # Pytest suite
 ```
 
 ---
 
-## ▶️ How to Run Locally
+## ▶️ Running locally
 
 **Backend**
 
 ```bash
 cd backend
 pip install -r requirements.txt
-python -m uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload      # http://localhost:8000, docs at /docs
 ```
 
 **Frontend**
@@ -327,86 +432,96 @@ python -m uvicorn app.main:app --reload
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev                                  # http://localhost:5173
 ```
 
-Frontend runs at `http://localhost:5173`, backend at `http://localhost:8000` (interactive docs
-at `/docs`). CORS and the frontend's `VITE_API_URL` are pre-configured for each other.
-
-**RL environment / experiments**
+**RL experiments**
 
 ```bash
 cd rl
 pip install -r requirements.txt
+pytest                                       # the test suite
+python -m evaluation.evaluate_agents         # compare all five agents
+```
 
-pytest                                  # run the test suite
-python -m evaluation.evaluate_agents    # compare all five agents
+Training a run, and re-measuring the board grid under one environment:
+
+```bash
+python -m evaluation.dqn_experiment --episodes 100000 --rows 5 --cols 5 --mines 5 \
+    --network-size fully_conv --train-every 4 --reward-scale 0.1 \
+    --epsilon-decay 0.9997 --seed 42 --eval-seed 42 \
+    --output-dir results/my_run
+
+python -m evaluation.rebaseline_board_configs --agents dqn --levels beginner \
+    --first-click-safe area --checkpoint-experiment my_run
 ```
 
 ---
 
 ## 🚀 Deployment
 
-**This project is deployed** — frontend on Vercel ([rl-minesweeper-lab.vercel.app](https://rl-minesweeper-lab.vercel.app/)), backend on Render ([rl-minesweeper-lab.onrender.com](https://rl-minesweeper-lab.onrender.com)). The steps below reproduce that setup.
-
-**Frontend (Vercel or any static host)**
-
-```bash
-cd frontend
-npm run build     # outputs frontend/dist -- a static bundle, tsc -b && vite build
-```
-
-Set `VITE_API_URL` as a project environment variable pointing at the deployed backend's base
-URL (e.g. `https://your-backend.example.com`) — never commit a production URL into `.env`.
-`frontend/.env.example` documents the variable; copy it to `.env` for local development.
-
-**Backend (any ASGI host — Render, Railway, Fly.io, a VM, etc.)**
+Frontend on Vercel, backend on Render. The backend is stateless and read-only, so a normal
+`git clone` plus deploy already has everything it needs.
 
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
+cd frontend && npm run build     # static bundle in frontend/dist
+cd backend  && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-The backend is stateless and read-only, and needs no database. It serves from `rl/results_public/`
-by default — a small (~100MB), deployment-safe subset of the full local training output
-(`rl/results/`, gitignored: checkpoints, CSVs, raw dumps) containing only what the API actually
-reads: experiment summaries, chart-ready metric histories, and replay JSON. It's committed to
-the repo, so a normal `git clone` + deploy already has everything the backend needs — no
-separate data upload or volume mount required. See backend/README.md's "Which results directory?"
-for exactly what's excluded and why.
+Set `VITE_API_URL` as a frontend environment variable pointing at the deployed backend — never
+commit a production URL. `frontend/.env.example` documents it.
 
-Two environment variables, both read by `app/config.py` via `pydantic-settings` (prefix `MINESWEEPER_`):
-
-| Variable | Purpose | Example |
-|---|---|---|
-| `MINESWEEPER_CORS_ORIGINS` | Origins allowed to call the API — defaults to `["http://localhost:5173"]` only | `MINESWEEPER_CORS_ORIGINS=["https://your-frontend.vercel.app"]` (JSON array string) |
-| `MINESWEEPER_RESULTS_DIR` | Override the results directory (e.g. to point at your full local `rl/results/` instead) | `MINESWEEPER_RESULTS_DIR=../rl/results` |
-
-**Don't set `MINESWEEPER_RESULTS_DIR` unless you actually need to override it.** An empty/blank
-value (e.g. adding the key in your host's dashboard with no value) is *not* the same as leaving
-it unset — pydantic-settings treats `""` as a real override, which resolves to the process's
-current working directory instead of the built-in `rl/results_public/` default, and every
-experiment/replay endpoint silently returns empty. If you ever see `/api/experiments` or
-`/api/replays` return `[]` despite `rl/results_public/` being committed, check for exactly this
-before anything else.
-
-**Before deploying:** set `MINESWEEPER_CORS_ORIGINS` to the real deployed frontend origin — the
-default only allows local dev, so the deployed frontend will get CORS errors until this is set.
+`MINESWEEPER_RESULTS_DIR` overrides which results tree the backend serves (default
+`rl/results_public/`); `MINESWEEPER_CORS_ORIGINS` overrides allowed origins.
 
 ---
 
-## 🔭 Future Work
+## 🔭 Future work
 
-- Larger boards, to test how each approach's limitations scale
-- Better exploration strategies for the learned agents
-- Self-play or curriculum-style training
-- A live, real-time human-vs-agent comparison (distinct from the pre-recorded replay viewer)
-- Additional RL algorithms beyond the five implemented here
+**1. DQN at Expert (16×16).** The most valuable missing run, and the only board size where no
+learned agent has been trained under the current recipe. Everything needed now exists: `fully_conv`
+means one set of weights is valid at 16×16, and the Beginner recipe already carried to 9×9 without
+retuning. The open question is whether depth defeats it — a 16×16 win needs roughly 216 correct
+reveals against 69 at 9×9, and with `gamma = 0.9` a win that far out discounts to almost nothing.
+Two things to vary first: the discount factor, and a curriculum that starts from the transferable
+9×9 weights rather than from scratch.
+
+```bash
+python -m evaluation.dqn_experiment --episodes 100000 --rows 16 --cols 16 --mines 40 \
+    --network-size fully_conv --train-every 4 --reward-scale 0.1 \
+    --epsilon-decay 0.9997 --first-click-safe area \
+    --seed 42 --eval-seed 42 --output-dir results/dqn_expert_A_fully_conv
+```
+
+**2. PPO's rollout length.** Unchanged at 256 steps since the 5×5 runs, and it cannot contain a
+69-reveal trajectory. This is the one lever never pulled at 9×9, and it should come before any
+further board or reward change.
+
+**3. Finish the multi-seed replication.** Two DQN configurations have three seeds each and already
+show a spread of up to 4.45 points (see Methodology). Every other configuration — including all four
+PPO chapters and both Intermediate levels — is still a single run. Extending the same three-seed
+treatment to the headline configurations is what would turn the smaller differences here from
+suggestive into settled.
+
+**4. Separating the two board settings.** The 22.35-point gain at Beginner belongs to `first_click_safe`
+and `guarantee_solvable` *together*, because they were changed together. One run with only the safe
+opening would split them.
+
+**5. Curriculum training.** 5×5 → 9×9 → 16×16 is architecturally possible now that weights transfer.
+The zero-shot numbers above are the baseline any curriculum has to beat.
 
 ---
 
 ## 🎯 Closing
 
-This project explores not just whether reinforcement learning agents can solve Minesweeper, but
-how different learning approaches reason, fail, and improve.
+The headline this project started with was that no learned agent beats explicit deduction. That is
+no longer true: given a survivable opening click and a spent training budget, DQN passes CSP at 5×5
+and a tabular lookup draws level with it.
+
+What decided that was never the algorithm. Across all five agents the two changes worth the most
+were spending the training budget honestly and fixing the board the agent was asked to learn from —
+both of which look like methodology rather than machine learning.
+
+The results here are largely one careful pass per configuration, and where the seed was varied it
+moved things by up to 4.45 points. That is the honest frame: the large effects are real, the small
+ones are not yet decided, and the page says so wherever it matters.

@@ -1,5 +1,6 @@
 import { getBoardConfigs } from "@/api/boardConfigs";
 import { getLeaderboard } from "@/api/metrics";
+import type { FirstClickPolicy } from "@/lib/boardLevelQuery";
 import type { LeaderboardEntry } from "@/types/metrics";
 
 export const LEVEL_ORDER = ["beginner", "intermediate", "expert"];
@@ -22,7 +23,7 @@ export interface BoardConfigSnapshot {
  * (per-agent detail rows in the research chamber) and `ResearchPipeline`
  * (each flow card's best-seen-so-far win rate).
  */
-export async function fetchAllBoardConfigLeaderboards(): Promise<BoardConfigSnapshot[]> {
+export async function fetchAllBoardConfigLeaderboards(firstClickSafe?: FirstClickPolicy): Promise<BoardConfigSnapshot[]> {
   const configs = await getBoardConfigs();
   const requests: { level: string; density: string; rows: number; cols: number; mines: number }[] = [];
 
@@ -36,7 +37,9 @@ export async function fetchAllBoardConfigLeaderboards(): Promise<BoardConfigSnap
     }
   }
 
-  return Promise.all(requests.map(async (request) => ({ ...request, entries: await getLeaderboard(request.level, request.density) })));
+  return Promise.all(
+    requests.map(async (request) => ({ ...request, entries: await getLeaderboard(request.level, request.density, firstClickSafe) })),
+  );
 }
 
 /** Best win rate seen for `agent` across every fetched snapshot, or `null` if

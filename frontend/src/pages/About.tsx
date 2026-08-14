@@ -1,6 +1,10 @@
 import { motion } from "framer-motion";
 import { Brain, Coins, Eye, Globe, RefreshCw, Target } from "lucide-react";
 import { AlgorithmPipeline } from "@/components/agents/AlgorithmPipeline";
+import { ObservationVisualizer } from "@/components/about/ObservationVisualizer";
+import { EnvironmentsTested } from "@/components/about/EnvironmentsTested";
+import { getReplay, getReplays } from "@/api/replays";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { EngineeringChallengeCards } from "@/components/about/EngineeringChallengeCards";
 import { SystemArchitectureDiagram } from "@/components/about/SystemArchitectureDiagram";
 import { DesignPhilosophyProgression } from "@/components/about/DesignPhilosophyProgression";
@@ -18,6 +22,20 @@ const AGENT_LOOP = [
 ];
 
 export function About() {
+  // A real, partially-revealed board for the observation card rather than a
+  // hand-written matrix -- the point of that card is that the two panels show
+  // the *same* state, which only holds if it came from a real episode. Taken
+  // mid-episode, since an all-hidden opening board shows nothing interesting on
+  // either side.
+  const { data: observationBoard } = useApiQuery(async () => {
+    const replays = await getReplays();
+    const pick = replays.find((replay) => replay.agent === "CSP" && replay.won) ?? replays[0];
+    if (!pick) return null;
+    const detail = await getReplay(pick.id);
+    const step = detail.timeline[Math.floor(detail.timeline.length / 2)];
+    return step?.board_state ?? detail.initial_board;
+  }, []);
+
   return (
     <div className="flex flex-col gap-24">
       {/* Hero */}
@@ -43,6 +61,27 @@ export function About() {
           <p className="mb-3 text-center text-xs font-medium tracking-wide text-text-muted uppercase">Every episode, one loop</p>
           <AlgorithmPipeline steps={AGENT_LOOP} accentClassName="text-primary" />
         </div>
+      </section>
+
+      {/* How agents see the board */}
+      <section>
+        <SectionHeading title="How does AI see Minesweeper?" />
+        <p className="mb-8 max-w-2xl text-text-muted">
+          Both panels below are the same board from the same real episode. The left is what a person sees; the right is
+          the matrix the agent actually receives -- no mine locations, just revealed counts and a marker for everything
+          still hidden.
+        </p>
+        <ObservationVisualizer board={observationBoard ?? null} />
+      </section>
+
+      {/* Environments tested */}
+      <section>
+        <SectionHeading title="Two environments, and what the second one bought" />
+        <p className="mb-8 max-w-2xl text-text-muted">
+          Every result in this project is measured under one of two board distributions. They differ by a single rule,
+          and that rule turned out to matter more than most things done to the agents themselves.
+        </p>
+        <EnvironmentsTested />
       </section>
 
       {/* Engineering challenge */}

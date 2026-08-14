@@ -1,0 +1,18 @@
+{
+  "agent": "CSP",
+  "level": "beginner",
+  "density": "standard",
+  "rows": 5,
+  "cols": 5,
+  "mines": 5,
+  "eval_episodes": 2000,
+  "win_rate": 0.434,
+  "win_rate_ci95": [
+    41.243,
+    45.583
+  ],
+  "avg_episode_length": 6.6715,
+  "avg_reward": 4.3515,
+  "failures": 1132,
+  "checkpoint_source": null
+}

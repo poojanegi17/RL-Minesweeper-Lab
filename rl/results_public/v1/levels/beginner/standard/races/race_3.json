@@ -1,0 +1,1051 @@
+{
+  "id": "race_3",
+  "seed": 1002,
+  "board_size": "5x5",
+  "mines": 5,
+  "generated_at": "2026-08-14T13:56:20.525279+00:00",
+  "turn_order": [
+    "Random",
+    "CSP",
+    "DQN",
+    "PPO"
+  ],
+  "checkpoints": {
+    "Random": null,
+    "CSP": null,
+    "DQN": "exp_M_fully_conv",
+    "PPO": "ppo_long_E_fully_conv"
+  },
+  "env": {
+    "first_click_safe": "none",
+    "guarantee_solvable": false
+  },
+  "env_version": "v1",
+  "initial_board": [
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "turns": [
+    {
+      "turn": 1,
+      "agent": "Random",
+      "action": {
+        "row": 2,
+        "col": 0
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": null
+    },
+    {
+      "turn": 2,
+      "agent": "CSP",
+      "action": {
+        "row": 2,
+        "col": 1
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.2,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (2, 1)."
+      }
+    },
+    {
+      "turn": 3,
+      "agent": "DQN",
+      "action": {
+        "row": 4,
+        "col": 0
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.4244033694267273
+      }
+    },
+    {
+      "turn": 4,
+      "agent": "PPO",
+      "action": {
+        "row": 0,
+        "col": 4
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "eliminated": true,
+      "reasoning": {
+        "action_probability": 0.36762747168540955
+      }
+    },
+    {
+      "turn": 5,
+      "agent": "Random",
+      "action": {
+        "row": 4,
+        "col": 4
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": null
+    },
+    {
+      "turn": 6,
+      "agent": "CSP",
+      "action": {
+        "row": 2,
+        "col": 3
+      },
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": true,
+      "reasoning": {
+        "deduction_type": "probability_guess",
+        "constraint_cells": null,
+        "remaining_mines": null,
+        "mine_probability": 0.23809523809523808,
+        "inference": "No safe cell deduced; guessing the lowest mine-probability cell (2, 3)."
+      }
+    },
+    {
+      "turn": 7,
+      "agent": "DQN",
+      "action": {
+        "row": 0,
+        "col": 0
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.35409480333328247
+      }
+    },
+    {
+      "turn": 8,
+      "agent": "Random",
+      "action": {
+        "row": 4,
+        "col": 1
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": null
+    },
+    {
+      "turn": 9,
+      "agent": "DQN",
+      "action": {
+        "row": 2,
+        "col": 2
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.6774338483810425
+      }
+    },
+    {
+      "turn": 10,
+      "agent": "Random",
+      "action": {
+        "row": 3,
+        "col": 3
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": null
+    },
+    {
+      "turn": 11,
+      "agent": "DQN",
+      "action": {
+        "row": 3,
+        "col": 0
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.8244013786315918
+      }
+    },
+    {
+      "turn": 12,
+      "agent": "Random",
+      "action": {
+        "row": 3,
+        "col": 4
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          -1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": true,
+      "reasoning": null
+    },
+    {
+      "turn": 13,
+      "agent": "DQN",
+      "action": {
+        "row": 4,
+        "col": 2
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          -1,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.8728583455085754
+      }
+    },
+    {
+      "turn": 14,
+      "agent": "DQN",
+      "action": {
+        "row": 3,
+        "col": 2
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          2,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.8796916007995605
+      }
+    },
+    {
+      "turn": 15,
+      "agent": "DQN",
+      "action": {
+        "row": 0,
+        "col": 2
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          2,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          -1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.858648419380188
+      }
+    },
+    {
+      "turn": 16,
+      "agent": "DQN",
+      "action": {
+        "row": 4,
+        "col": 3
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          2,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.8586252927780151
+      }
+    },
+    {
+      "turn": 17,
+      "agent": "DQN",
+      "action": {
+        "row": 1,
+        "col": 3
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          3,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          2,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.9593846797943115
+      }
+    },
+    {
+      "turn": 18,
+      "agent": "DQN",
+      "action": {
+        "row": 2,
+        "col": 4
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          1,
+          -1,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          3,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          2
+        ],
+        [
+          1,
+          -1,
+          2,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.9317913055419922
+      }
+    },
+    {
+      "turn": 19,
+      "agent": "DQN",
+      "action": {
+        "row": 0,
+        "col": 3
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          1,
+          2,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          3,
+          -1
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          2
+        ],
+        [
+          1,
+          -1,
+          2,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.9807059168815613
+      }
+    },
+    {
+      "turn": 20,
+      "agent": "DQN",
+      "action": {
+        "row": 1,
+        "col": 4
+      },
+      "board_state": [
+        [
+          0,
+          1,
+          1,
+          2,
+          -1
+        ],
+        [
+          0,
+          1,
+          -1,
+          3,
+          2
+        ],
+        [
+          1,
+          2,
+          3,
+          -1,
+          2
+        ],
+        [
+          1,
+          -1,
+          2,
+          2,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "eliminated": false,
+      "reasoning": {
+        "q_value": 0.9202920198440552
+      }
+    }
+  ],
+  "won": true,
+  "total_turns": 20,
+  "surviving_agents": [
+    "DQN"
+  ],
+  "eliminated_agents": {
+    "PPO": 4,
+    "CSP": 6,
+    "Random": 12
+  }
+}

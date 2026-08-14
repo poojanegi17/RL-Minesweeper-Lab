@@ -66,7 +66,31 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mines", type=int, default=NUM_MINES, help="Mine count.")
     parser.add_argument("--output-dir", type=str, default="results/replays", help="Where to write replay JSON files.")
     parser.add_argument(
+        "--first-click-safe",
+        choices=["none", "cell", "area"],
+        default="none",
+        help="Opening-move policy for the recorded boards. Recorded into each replay's `env` block so a "
+        "viewer can never show an episode from one distribution while claiming another (default: none, "
+        "matching every replay generated before this flag existed).",
+    )
+    parser.add_argument(
+        "--checkpoint-experiment",
+        type=str,
+        default=None,
+        help="Run directory under --results-dir to load the DQN/PPO checkpoint from, overriding automatic "
+        "resolution -- required when recording an agent whose deployed weights are not the default ones.",
+    )
+    parser.add_argument(
         "--results-dir", type=str, default="results", help="Where to look up experiment checkpoints from (used with --experiment-id)."
+    )
+    parser.add_argument(
+        "--checkpoint-file",
+        choices=["auto", "best", "final"],
+        default="auto",
+        help="Which of a run's two saved checkpoints to replay. \"auto\" loads the one the run "
+        "recorded deploying (`used_checkpoint`), so the episode is played by the same weights whose "
+        "win rate the site publishes for it -- most runs here deployed `final`, which the previous "
+        "best-then-final precedence never picked. Only applies with --experiment-id.",
     )
     parser.add_argument("--torch-threads", type=int, default=None, help="Cap CPU threads PyTorch uses.")
     return parser.parse_args()
@@ -98,10 +122,22 @@ def main() -> None:
     experiment_id_for_checkpoint = args.experiment_id if agent_slug in ("dqn", "ppo") else None
 
     agent, action_fn, reasoning_fn, on_episode_start = build_agent(
-        agent_slug, args.seed, experiment_id_for_checkpoint, results_dir, rows=args.rows, cols=args.cols, num_mines=args.mines
+        agent_slug,
+        args.seed,
+        experiment_id_for_checkpoint,
+        results_dir,
+        rows=args.rows,
+        cols=args.cols,
+        num_mines=args.mines,
+        checkpoint_file=args.checkpoint_file,
     )
 
-    env = MinesweeperEnv(rows=args.rows, cols=args.cols, num_mines=args.mines)
+    env = MinesweeperEnv(
+        rows=args.rows,
+        cols=args.cols,
+        num_mines=args.mines,
+        first_click_safe=args.first_click_safe,
+    )
     recorder = ReplayRecorder()
     episode_number = _next_episode_number(output_dir, agent_slug)
 
@@ -124,6 +160,12 @@ def main() -> None:
             episode=episode,
             generated_at=datetime.now(timezone.utc).isoformat(),
         )
+
+        # Stamp the board distribution onto every replay. Without it a viewer
+        # cannot tell which game an episode came from, and the two
+        # distributions are different games rather than difficulty settings.
+        replay["env"] = {"first_click_safe": args.first_click_safe, "guarantee_solvable": False}
+        replay["env_version"] = "v2" if args.first_click_safe != "none" else "v1"
 
         path = output_dir / f"{agent_slug}_episode_{episode_number}.json"
         path.write_text(json.dumps(replay, indent=2))

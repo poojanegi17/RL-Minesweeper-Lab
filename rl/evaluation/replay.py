@@ -248,6 +248,9 @@ def build_shared_race(
     generated_at: str,
     turn_order: List[str],
     result: Dict[str, Any],
+    checkpoints: Optional[Dict[str, Optional[str]]] = None,
+    env: Optional[Dict[str, Any]] = None,
+    env_version: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Assemble race metadata + a `shared_race.simulate_shared_race` result into
     one race artifact -- several agents taking turns on one physically shared
@@ -258,6 +261,13 @@ def build_shared_race(
     decoupled from `seed` (the actual RNG seed the board was generated from,
     kept in the payload for reproducibility) -- the same split `build_replay`
     already uses between `episode_number` and `seed`.
+
+    `checkpoints` maps each agent slug to the experiment id its weights came
+    from (None for Random/CSP, which have none). Recorded for the same reason
+    every board result carries `checkpoint_source`: a race is a claim about how
+    four specific models play, and without this the artifact cannot say which
+    DQN or PPO it was. Omitted entirely when not supplied, so races generated
+    before this existed stay valid rather than gaining a null field.
     """
     return {
         "id": f"race_{race_number}",
@@ -266,6 +276,8 @@ def build_shared_race(
         "mines": mines,
         "generated_at": generated_at,
         "turn_order": turn_order,
+        **({"checkpoints": checkpoints} if checkpoints else {}),
+        **({"env": env, "env_version": env_version} if env is not None else {}),
         "initial_board": result["initial_board"],
         "turns": result["turns"],
         "won": result["won"],

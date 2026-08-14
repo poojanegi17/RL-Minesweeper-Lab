@@ -1,8 +1,8 @@
 /**
  * A single human-readable "why" sentence for one replay step's recorded
  * reasoning -- used by the Home page's replay showcase preview card. Mirrors
- * the same per-agent shapes `ReplayInfo`/`DecisionExample` render in full
- * detail elsewhere (`ReplayStep.reasoning`, see `types/replay.ts`), just
+ * the same per-agent shapes `ReplayInfo` and `AgentConfigShowcase` render in
+ * full detail elsewhere (`ReplayStep.reasoning`, see `types/replay.ts`), just
  * condensed to one line for a preview. Never fabricates a reason when
  * nothing was recorded for that step.
  *

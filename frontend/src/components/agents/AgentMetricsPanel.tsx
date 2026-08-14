@@ -16,6 +16,13 @@ interface AgentMetricsPanelProps {
   /** Per-episode training history for `experiment` -- null in lockstep with it. */
   metrics: MetricsResponse | null;
   leaderboardEntry: LeaderboardEntry | undefined;
+  /** Skips the "Evaluation/Reference figures" stat card for the
+   * `leaderboardEntry`-only branch -- used by `ExperimentComparison`, where
+   * `BoardConfigComparisonTable` already shows this exact win rate/avg reward
+   * as one row of its own table, so repeating it here would just be the same
+   * numbers twice. The "not trained at this level yet" empty state and the
+   * live-training branch are unaffected. */
+  hideFiguresCard?: boolean;
 }
 
 /**
@@ -26,7 +33,7 @@ interface AgentMetricsPanelProps {
  * `routes/metrics.py`'s module docstring on the backend for why those three
  * have no live artifacts to chart).
  */
-export function AgentMetricsPanel({ experiment, metrics, leaderboardEntry }: AgentMetricsPanelProps) {
+export function AgentMetricsPanel({ experiment, metrics, leaderboardEntry, hideFiguresCard }: AgentMetricsPanelProps) {
   if (experiment && metrics) {
     const stats = [
       { label: "Win rate", value: formatPercent(experiment.evaluation_metrics.win_rate) },
@@ -64,6 +71,10 @@ export function AgentMetricsPanel({ experiment, metrics, leaderboardEntry }: Age
         description="No checkpoint has been trained for this agent at this board size/density yet."
       />
     );
+  }
+
+  if (leaderboardEntry && hideFiguresCard) {
+    return null;
   }
 
   if (leaderboardEntry) {

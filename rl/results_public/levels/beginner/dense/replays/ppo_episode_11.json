@@ -1,0 +1,106 @@
+{
+  "id": "ppo_episode_11",
+  "agent": "PPO",
+  "experiment_id": "ppo_long_E_fully_conv",
+  "board_size": "5x5",
+  "mines": 8,
+  "seed": 46,
+  "episode_number": 11,
+  "generated_at": "2026-08-14T10:57:54.323748+00:00",
+  "initial_board": [
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          0
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 4
+      },
+      "reward": -10.0,
+      "done": true,
+      "reasoning": {
+        "action_probability": 0.379815012216568
+      }
+    }
+  ],
+  "won": false,
+  "total_reward": -10.0,
+  "steps_taken": 1,
+  "env": {
+    "first_click_safe": "none",
+    "guarantee_solvable": false
+  },
+  "env_version": "v1"
+}

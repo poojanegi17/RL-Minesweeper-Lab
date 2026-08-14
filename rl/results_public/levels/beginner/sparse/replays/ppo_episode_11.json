@@ -1,0 +1,155 @@
+{
+  "id": "ppo_episode_11",
+  "agent": "PPO",
+  "experiment_id": "ppo_long_E_fully_conv",
+  "board_size": "5x5",
+  "mines": 3,
+  "seed": 42,
+  "episode_number": 11,
+  "generated_at": "2026-08-14T10:57:50.978446+00:00",
+  "initial_board": [
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 4
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "action_probability": 0.379815012216568
+      }
+    },
+    {
+      "step": 2,
+      "board_state": [
+        [
+          0,
+          -1,
+          -1,
+          -1,
+          1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 0
+      },
+      "reward": -10.0,
+      "done": true,
+      "reasoning": {
+        "action_probability": 0.32918882369995117
+      }
+    }
+  ],
+  "won": false,
+  "total_reward": -9.0,
+  "steps_taken": 2,
+  "env": {
+    "first_click_safe": "none",
+    "guarantee_solvable": false
+  },
+  "env_version": "v1"
+}

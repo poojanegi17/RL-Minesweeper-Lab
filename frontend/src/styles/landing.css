@@ -1,0 +1,424 @@
+/*
+ * Styling shared by the marketing landing page (`pages/Home.tsx` +
+ * `components/landing/*`) and, via `.glossy-scope`, every other route's
+ * content wrapper (`Layout.tsx`) -- the whole site is one fixed
+ * dark/cinematic aesthetic now (see `ThemeProvider`), not just this page.
+ * `.landing-page` itself (color, selection tint) stays scoped to the
+ * landing page's own markup; `.glossy-scope` is the part reused site-wide.
+ */
+
+.landing-page {
+  /* No background color here on purpose: `LandingBackground` (rendered by
+   * `Layout.tsx`, a sibling of this element, not an ancestor) owns the
+   * page's actual background. `.landing-page` is a plain, non-positioned
+   * block box -- per CSS stacking rules, a `position: fixed` element with a
+   * *negative* z-index (LandingBackground uses `-z-10`) paints *behind*
+   * normal in-flow content regardless of DOM order. Giving this element its
+   * own opaque background would silently paint over LandingBackground
+   * entirely, no matter what's in it -- which is exactly what happened
+   * before this comment existed. */
+  color: #fff;
+}
+
+.landing-page ::selection {
+  background: rgba(61, 129, 227, 0.3);
+}
+
+/* Scoped tweaks for reused, theme-aware components (`Card`, `ReplayControls`,
+ * `LevelDensitySelector`, ...) embedded on pages that opt into this class
+ * (`Layout.tsx`'s content wrapper, `WatchThemCompete`). `Card`'s own solid
+ * dark-mode surface -- the panel behind the game board, the roster, etc. --
+ * goes translucent + blurred here too, so it reads as glass over the
+ * animated board rather than a flat grey/black block sitting on top of it.
+ *
+ * `.glossy-scope.glossy-scope` (the class repeated) doubles this rule's
+ * specificity on purpose: `landing.css` is `@import`ed near the *top* of
+ * `index.css`, before `.dark`'s own `--color-surface` definition, so at
+ * equal specificity `.dark` wins any tie by source order alone if the two
+ * classes ever end up on the same element again -- this makes that
+ * impossible rather than relying on every future call site remembering not
+ * to combine them. */
+.glossy-scope.glossy-scope {
+  --color-surface: rgba(255, 255, 255, 0.05);
+  --color-surface-hover: rgba(255, 255, 255, 0.09);
+  --color-border: rgba(255, 255, 255, 0.14);
+}
+
+.glossy-scope .bg-surface,
+.glossy-scope .bg-surface-hover {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* --- Liquid glass card treatment -------------------------------------- */
+
+.landing-page .liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-page .liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.15) 80%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* --- Shiny gradient headline animation --------------------------------- */
+
+.landing-page .animate-shiny {
+  background-size: 200% auto;
+  animation: landing-shiny 6s linear infinite;
+}
+
+@keyframes landing-shiny {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* --- Board configurations (pricing-card equivalent) --------------------- */
+
+.lp-bc-section {
+  position: relative;
+  padding: 40px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+.lp-bc-watermark {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  text-align: center;
+  margin-top: 40px;
+  z-index: 2;
+}
+
+.lp-bc-watermark-main {
+  font-size: 9rem;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  filter: url(#landing-noise-watermark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lp-bc-watermark-line-1 {
+  color: #fff;
+}
+
+.lp-bc-watermark-line-2 {
+  background: linear-gradient(to right, #091020 0%, #0b2551 25%, #a4f4fd 65%, #00d2ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.lp-bc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  width: 100%;
+  max-width: 1100px;
+  margin-top: 60px;
+  transform: translateX(20px);
+  position: relative;
+  z-index: 3;
+}
+
+.lp-bc-card {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.4));
+  backdrop-filter: blur(14px) brightness(0.91);
+  border: 1px solid rgba(255, 255, 255, 1);
+  border-radius: 44px;
+  padding: 50px 24px;
+  min-height: 580px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.lp-bc-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 50%);
+  pointer-events: none;
+}
+
+.lp-bc-card:hover {
+  background: rgba(15, 15, 15, 0.6);
+  border-color: rgba(34, 211, 238, 0.7);
+  transform: translateY(-12px) scale(1.01);
+}
+
+.lp-bc-card-expert {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.55));
+}
+
+/* --- Agent cards (same black-glass identity as the pricing cards above,
+   scaled down for a 5-up grid instead of 3 tall columns) --------------- */
+
+.lp-agent-card {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.4));
+  backdrop-filter: blur(14px) brightness(0.91);
+  -webkit-backdrop-filter: blur(14px) brightness(0.91);
+  border: 1px solid rgba(255, 255, 255, 1);
+  border-radius: 28px;
+  padding: 24px;
+  transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.lp-agent-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 50%);
+  pointer-events: none;
+}
+
+.lp-agent-card:hover {
+  background: rgba(15, 15, 15, 0.6);
+  border-color: rgba(34, 211, 238, 0.7);
+  transform: translateY(-8px) scale(1.01);
+}
+
+/* The active card in a 3D wheel (`components/ui/WheelCarousel.tsx`): brighter
+   edge, a stronger glass reflection, and a cyan glow -- the same accent the
+   rest of the landing page uses for "this is the live one". Everything is
+   additive, so the base `.liquid-glass` card design is untouched.
+
+   The hover lift that a flat card grid uses is deliberately not applied inside
+   a wheel: the depth cue already does that job (the selected card is genuinely
+   nearer the camera), and animating `transform` on a child of a `preserve-3d`
+   chain is what makes these stacks flatten and judder mid-rotation. */
+/* A thinner, clearer glass than the default panel treatment. The point of a
+   wheel is depth, so the front card has to read as something you are looking
+   *through* -- a heavier blur would smear the cards behind it into a wash and
+   flatten the whole effect. Lower blur, near-zero fill, slight saturation lift
+   so the cards behind keep their colour. */
+.landing-page .lp-wheel-card {
+  background: rgba(255, 255, 255, 0.012);
+  backdrop-filter: blur(2px) saturate(118%);
+  -webkit-backdrop-filter: blur(2px) saturate(118%);
+}
+
+/* Both selectors are `.landing-page`-scoped deliberately. `.landing-page
+   .liquid-glass` sets `border: none`, which outranks a bare `.lp-wheel-card`
+   class -- so an unscoped rule here silently rendered no border at all and the
+   active card's "brighter edge" never appeared. */
+.landing-page .lp-wheel-card--active {
+  border: 1px solid rgba(34, 211, 238, 0.75);
+  background: rgba(34, 211, 238, 0.045);
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.28),
+    inset 0 1px 1px rgba(255, 255, 255, 0.22),
+    0 24px 70px -20px rgba(0, 210, 255, 0.5);
+}
+
+.lp-bc-tier-small {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.lp-bc-tier-large {
+  font-size: 2.8rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin-top: 8px;
+}
+
+.lp-bc-desc {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.45);
+  min-height: 3.2em;
+  margin-top: 16px;
+  margin-bottom: 40px;
+  line-height: 1.5;
+}
+
+.lp-bc-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 18px;
+  line-height: 1.4;
+}
+
+.lp-bc-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-bc-btn {
+  background: #fff;
+  color: #000;
+  padding: 10px 32px;
+  border-radius: 100px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-top: auto;
+  border: none;
+  cursor: pointer;
+  align-self: center;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lp-bc-btn:hover {
+  background: #f5f5f5;
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(255, 255, 255, 0.15);
+}
+
+.lp-bc-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lp-bc-toggle-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+  max-width: 1100px;
+  margin-top: 32px;
+  padding-right: 20px;
+}
+
+.lp-bc-toggle {
+  width: 52px;
+  height: 28px;
+  background: #fff;
+  border-radius: 100px;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+}
+
+.lp-bc-toggle-knob {
+  width: 20px;
+  height: 20px;
+  background: #000;
+  border-radius: 50%;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lp-bc-toggle.active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.lp-bc-toggle.active .lp-bc-toggle-knob {
+  transform: translateX(24px);
+  background: #fff;
+}
+
+@media (max-width: 1024px) {
+  .lp-bc-watermark-main {
+    font-size: 3.5rem;
+    filter: none;
+  }
+
+  .lp-bc-watermark-line-2 {
+    background: none;
+    -webkit-text-fill-color: #00d2ff;
+    color: #00d2ff;
+  }
+
+  .lp-bc-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    transform: none;
+    width: 100vw;
+    padding: 0 20px;
+    gap: 16px;
+    scrollbar-width: none;
+  }
+
+  .lp-bc-card {
+    flex: 0 0 320px;
+    scroll-snap-align: center;
+  }
+
+  .lp-bc-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .lp-bc-toggle-wrap {
+    justify-content: center;
+    padding-right: 0;
+  }
+}
+
+/* The wheel's detail panel.
+
+   Real frosted glass, not a black slab. The readability problem it has to
+   solve is that it sits over six lit cards, and a plain translucent fill lets
+   that busy backdrop straight through the text -- so the darkening is done by
+   `backdrop-filter: brightness()` instead of by an opaque background. That
+   dims and blurs whatever is behind the panel while the panel itself stays a
+   thin, tinted surface, which is what keeps it glassy rather than solid.
+
+   The cyan edge ties it back to the active card it expanded from. */
+.landing-page .lp-wheel-panel {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(26px) saturate(135%) brightness(0.42);
+  -webkit-backdrop-filter: blur(26px) saturate(135%) brightness(0.42);
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    0 0 0 1px rgba(34, 211, 238, 0.15),
+    0 30px 80px -24px rgba(0, 0, 0, 0.85);
+}

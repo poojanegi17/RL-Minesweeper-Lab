@@ -6,6 +6,7 @@ truth rather than just "the solver didn't crash."
 """
 
 import numpy as np
+import pytest
 
 from agents.csp_solver import CSPAgent
 from environment.minesweeper_env import MinesweeperEnv
@@ -138,3 +139,88 @@ def test_csp_never_contradicts_ground_truth_across_seeds():
             action = agent.choose_action(observation)
             observation, reward, terminated, truncated, info = env.step(action)
             steps += 1
+
+
+def test_first_move_is_a_uniform_guess_with_no_information():
+    """The opening move has nothing to deduce from, so every cell scores alike.
+
+    This is why every CSP episode needs at least one guess, and why its
+    first-click death rate matches Random's -- a documented property of the
+    agent, so it's pinned here rather than left implicit.
+    """
+    agent = CSPAgent(rows=5, cols=5, num_mines=5, seed=0)
+    all_hidden = [[-1] * 5 for _ in range(5)]
+
+    agent.update_constraints(all_hidden)
+
+    assert agent.find_safe_moves(all_hidden) == []
+    assert agent.find_mines() == set()
+    probabilities = agent.calculate_probabilities(all_hidden)
+    # Every cell is on the board and every one carries the identical estimate.
+    assert len(probabilities) == 25
+    assert len(set(probabilities.values())) == 1
+    assert probabilities[(0, 0)] == pytest.approx(5 / 25)
+
+
+def test_first_move_spreads_across_cells_over_many_seeds():
+    # A uniform guess, not a fixed corner: different seeds must pick different
+    # opening cells.
+    all_hidden = [[-1] * 5 for _ in range(5)]
+    chosen = {CSPAgent(rows=5, cols=5, num_mines=5, seed=s).choose_action(all_hidden) for s in range(40)}
+
+    assert len(chosen) > 1
+
+
+def test_tie_breaking_is_seeded_random_not_a_function_of_the_board():
+    """CSP's *deduction* is deterministic; its choice among equals is not.
+
+    Documented because the methodology copy previously claimed the action was
+    "deterministic given the board state", which is false whenever several
+    cells are equally safe or equally risky.
+    """
+    # A board where two separate zero-constraints make several cells provably
+    # safe at once, so choose_action has a genuine tie to break.
+    board = [
+        [0, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, 0],
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1],
+    ]
+    picks = {CSPAgent(rows=5, cols=5, num_mines=5, seed=s).choose_action(board) for s in range(40)}
+
+    assert len(picks) > 1, "expected the tie to be broken differently across seeds"
+
+
+def test_same_seed_reproduces_the_same_choice():
+    # Seeded, so a run is still reproducible -- both halves of the claim.
+    board = [
+        [0, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, 0],
+        [-1, -1, -1, -1, -1],
+        [-1, -1, -1, -1, -1],
+    ]
+    first = CSPAgent(rows=5, cols=5, num_mines=5, seed=7).choose_action(board)
+    second = CSPAgent(rows=5, cols=5, num_mines=5, seed=7).choose_action(board)
+
+    assert first == second
+
+
+def test_constraint_count_discounts_already_deduced_mines():
+    # `remaining_count = value - known_mine_neighbors` -- a "1" whose single
+    # mine is already known must contribute a 0-count (all-safe) constraint.
+    agent = CSPAgent(rows=3, cols=3, num_mines=1, seed=0)
+    board = [
+        [-1, -1, -1],
+        [-1, 1, -1],
+        [-1, -1, -1],
+    ]
+    agent.known_mines.add((0, 0))
+
+    agent.update_constraints(board)
+
+    # With the one mine accounted for, every other neighbour of the "1" is safe.
+    safe = set(agent.find_safe_moves(board))
+    assert (0, 1) in safe and (2, 2) in safe
+    assert (0, 0) not in safe

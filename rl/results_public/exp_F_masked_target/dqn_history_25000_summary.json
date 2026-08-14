@@ -1,0 +1,27 @@
+{
+  "episodes": 25000,
+  "rows": 5,
+  "cols": 5,
+  "mines": 5,
+  "lr": 0.0001,
+  "lr_schedule": null,
+  "batch_size": 64,
+  "target_update_every": 25,
+  "network_size": "default",
+  "buffer_size": 20000,
+  "checkpoint_every": 2500,
+  "used_checkpoint": "final_in_memory_weights",
+  "best_checkpoint_metadata": null,
+  "train_seconds": 754.2,
+  "eval_episodes": 2000,
+  "win_rate": 0.114,
+  "avg_episode_length": 5.07,
+  "avg_reward": -3.65,
+  "failures": 1772,
+  "win_rate_ci95": [
+    10.081,
+    12.868
+  ],
+  "evaluation_source": "reevaluate_checkpoints.py",
+  "bootstrap_target_masked": true
+}

@@ -1,0 +1,19 @@
+{
+  "agent": "Q-Learning",
+  "level": "beginner",
+  "density": "standard",
+  "rows": 5,
+  "cols": 5,
+  "mines": 5,
+  "eval_episodes": 2000,
+  "win_rate": 0.011,
+  "win_rate_ci95": [
+    0.728,
+    1.66
+  ],
+  "avg_episode_length": 4.033,
+  "avg_reward": -6.747,
+  "failures": 1978,
+  "checkpoint_source": null,
+  "train_episodes": 20000
+}

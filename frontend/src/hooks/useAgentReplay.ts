@@ -23,10 +23,8 @@ export interface UseAgentReplayResult {
 /**
  * Fetches one representative recorded episode for a given agent: `GET
  * /api/replays` (list), then `GET /api/replays/{id}` (detail) for the best
- * match (see `pickBestReplay`). Shared by every UI that shows "here's what
- * {agent} actually did" -- `DecisionExample` (agent explainer pages) and
- * `AIComparisonBoard` (home page) both need exactly this chain, so it lives
- * here once instead of twice.
+ * match (see `pickBestReplay`). Used by `AIComparisonBoard` (home page) to
+ * show "here's what {agent} actually did" next to the visitor's own game.
  */
 export function useAgentReplay(agentName: string | null, level?: string, density?: string): UseAgentReplayResult {
   const {

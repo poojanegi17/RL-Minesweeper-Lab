@@ -1,0 +1,23 @@
+{
+  "agent": "CSP",
+  "level": "expert",
+  "density": "standard",
+  "rows": 16,
+  "cols": 16,
+  "mines": 40,
+  "env_version": "v2",
+  "env": {
+    "first_click_safe": "area",
+    "guarantee_solvable": false
+  },
+  "eval_episodes": 2000,
+  "win_rate": 0.8125,
+  "win_rate_ci95": [
+    79.48,
+    82.9
+  ],
+  "avg_episode_length": 74.2455,
+  "avg_reward": 79.4955,
+  "failures": 375,
+  "checkpoint_source": "levels/expert/standard"
+}

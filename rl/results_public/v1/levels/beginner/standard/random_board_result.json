@@ -1,0 +1,18 @@
+{
+  "agent": "Random",
+  "level": "beginner",
+  "density": "standard",
+  "rows": 5,
+  "cols": 5,
+  "mines": 5,
+  "eval_episodes": 2000,
+  "win_rate": 0.0045,
+  "win_rate_ci95": [
+    0.237,
+    0.853
+  ],
+  "avg_episode_length": 3.546,
+  "avg_reward": -7.364,
+  "failures": 1991,
+  "checkpoint_source": null
+}

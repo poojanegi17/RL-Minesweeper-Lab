@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Users } from "lucide-react";
 import { AgentCard } from "@/components/agent/AgentCard";
@@ -34,7 +35,12 @@ export function Agents() {
         <p className="mt-2 max-w-2xl text-text-muted">
           Five approaches to the same problem, from a random baseline to
           learned policies. Select one to see how it reasons about the
-          board.
+          board. Only the best-performing agent at each config is present —
+          to see all of them, explore the{" "}
+          <Link to="/research" className="text-primary hover:underline">
+            research pipeline
+          </Link>
+          .
         </p>
       </div>
 

@@ -51,7 +51,7 @@ import torch.nn.functional as F
 from torch.distributions import Categorical
 
 from models.dqn_network import encode_observation
-from models.ppo_network import PPONetwork
+from models.ppo_network import NETWORK_PRESETS, PPONetwork
 from training.rollout_buffer import RolloutBuffer
 
 PathLike = Union[str, Path]
@@ -80,6 +80,7 @@ class PPOAgent:
         batch_size: int = 64,
         device: Optional[str] = None,
         seed: Optional[int] = None,
+        network_size: str = "default",
     ) -> None:
         """Create a PPO agent for a board of the given size.
 
@@ -106,7 +107,21 @@ class PPOAgent:
             device: Torch device string, e.g. "cpu" or "cuda". Defaults to CPU.
             seed: Optional seed for reproducible action sampling, minibatch
                 shuffling, and network initialization.
+            network_size: Which `ppo_network.NETWORK_PRESETS` entry to build.
+                Defaults to "default" -- the two-conv, Linear-head design every
+                PPO run in this project used before the preset existed -- so
+                published checkpoints keep loading unchanged. "fully_conv" is
+                the board-size-independent one.
+
+        Raises:
+            ValueError: If `network_size` is not a known preset.
         """
+        if network_size not in NETWORK_PRESETS:
+            raise ValueError(
+                f"Unknown network_size {network_size!r}; choose from {tuple(NETWORK_PRESETS)}"
+            )
+        self.network_size = network_size
+
         self.rows = rows
         self.cols = cols
         self.n_actions = rows * cols
@@ -125,7 +140,7 @@ class PPOAgent:
         if seed is not None:
             torch.manual_seed(seed)
 
-        self.network = PPONetwork(rows, cols).to(self.device)
+        self.network = PPONetwork(rows, cols, **NETWORK_PRESETS[network_size]).to(self.device)
         self.optimizer = torch.optim.Adam(self.network.parameters(), lr=lr)
         self.buffer = RolloutBuffer()
 
@@ -148,6 +163,12 @@ class PPOAgent:
             "model_state_dict": self.network.state_dict(),
             "rows": self.rows,
             "cols": self.cols,
+            # Recorded for the same reason `DQNAgent` records it: the preset
+            # decides the module shapes, so a loader that guesses wrong fails on
+            # `load_state_dict` rather than silently. Checkpoints written before
+            # this field existed are all "default", which is what readers assume
+            # when it is absent.
+            "network_size": self.network_size,
             "metadata": {
                 "episode": episode,
                 "win_rate": win_rate,

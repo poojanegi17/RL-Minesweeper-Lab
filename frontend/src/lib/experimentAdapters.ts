@@ -1,4 +1,3 @@
-import { CONCEPT_GLOSSARY } from "@/lib/agentExplainers";
 import type { ExperimentDetail, ExperimentSummary, RunBrief, SummaryValue } from "@/types/experiment";
 
 /**
@@ -10,15 +9,6 @@ import type { ExperimentDetail, ExperimentSummary, RunBrief, SummaryValue } from
  */
 export function isFamilySummary(experiment: ExperimentSummary | ExperimentDetail): experiment is ExperimentSummary {
   return "run_count" in experiment;
-}
-
-/** The run `metrics_summary.best_run_id` points to, or null if no run in the
- * family recorded a win rate. Never guesses -- returns null rather than
- * falling back to an arbitrary run when the id doesn't resolve. */
-export function bestRun(experiment: ExperimentSummary): RunBrief | null {
-  const { best_run_id } = experiment.metrics_summary;
-  if (best_run_id === null) return null;
-  return experiment.runs.find((run) => run.id === best_run_id) ?? null;
 }
 
 export function formatPercent(value: number | null): string {
@@ -37,56 +27,6 @@ export function humanizeVariant(variant: string): string {
     .split("_")
     .map((word) => (word.toLowerCase() === "lr" ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1)))
     .join(" ");
-}
-
-export interface InvestigationNarrative {
-  whyTested: string;
-  whatChanged: string;
-  whatLearned: string;
-}
-
-/**
- * Reframes a family's already-real, already-derived fields (`description`,
- * each run's `variant`, `techniques`, `metrics_summary`) as three research
- * questions instead of a flat artifact listing. Every sentence traces back
- * to a real field `GET /api/experiments` already returns -- nothing here is
- * authored per experiment; it's client-side synthesis of the same
- * mechanical data, in the same spirit as the backend's own
- * `derive_description`/`humanize_variant`. Returns `null` for a standalone
- * run (`run_count === 1`) -- there's no comparison to narrate for one run.
- */
-export function buildInvestigationNarrative(experiment: ExperimentSummary): InvestigationNarrative | null {
-  if (experiment.run_count <= 1) return null;
-
-  const variantTitles = experiment.runs
-    .map((run) => (run.variant ? humanizeVariant(run.variant) : null))
-    .filter((title): title is string => title !== null);
-
-  const whyTested = experiment.description;
-
-  const whatChanged =
-    variantTitles.length > 0
-      ? `Each of the ${experiment.run_count} runs isolates a different change: ${variantTitles.join(", ")}.` +
-        (experiment.techniques.length > 0 ? ` Techniques introduced across variants: ${experiment.techniques.join(", ")}.` : "")
-      : `${experiment.run_count} runs recorded under this family, with no parseable per-run variant label.`;
-
-  const best = bestRun(experiment);
-  const { avg_win_rate: avgWinRate } = experiment.metrics_summary;
-  let whatLearned: string;
-  if (best && best.win_rate != null) {
-    const baseline = experiment.runs.find((run) => run.variant === "baseline" && run.id !== best.id);
-    if (baseline?.win_rate != null) {
-      whatLearned = `${best.title} performed best at ${formatPercent(best.win_rate)} win rate, vs. ${formatPercent(baseline.win_rate)} for the baseline run.`;
-    } else if (avgWinRate != null) {
-      whatLearned = `${best.title} performed best at ${formatPercent(best.win_rate)} win rate, above the ${formatPercent(avgWinRate)} average across all runs.`;
-    } else {
-      whatLearned = `${best.title} performed best, at ${formatPercent(best.win_rate)} win rate.`;
-    }
-  } else {
-    whatLearned = "No run in this investigation has recorded a win rate yet.";
-  }
-
-  return { whyTested, whatChanged, whatLearned };
 }
 
 const DIFF_EXCLUDED_KEYS = new Set(["train_seconds"]);
@@ -117,12 +57,11 @@ function mergedConfig(detail: ExperimentDetail): Record<string, SummaryValue> {
 
 /**
  * One story per real training run in a family -- "baseline" is whichever run
- * carries that exact `variant` label (falling back to the first run, the
- * same rule `buildInvestigationNarrative` uses for its own baseline
- * comparison). Everything else is diffed against it: `addedTechniques` and
- * `changes` are mechanical set/field differences over real `ExperimentDetail`
- * data, never authored prose -- callers turn `addedTechniques` into sentences
- * via `CONCEPT_GLOSSARY` (`@/lib/agentExplainers`), the same glossary
+ * carries that exact `variant` label (falling back to the first run).
+ * Everything else is diffed against it: `addedTechniques` and `changes` are
+ * mechanical set/field differences over real `ExperimentDetail` data, never
+ * authored prose -- callers turn `addedTechniques` into sentences via
+ * `CONCEPT_GLOSSARY` (`@/lib/agentExplainers`), the same glossary
  * `AgentDetail` already uses to explain techniques.
  */
 export function buildVariantStories(runs: RunBrief[], details: ExperimentDetail[]): VariantStory[] {
@@ -177,16 +116,4 @@ export function deriveObservation(story: VariantStory): string {
   if (winRateDelta > 0) return `Win rate improved from ${from} to ${to}${pct} vs. baseline.`;
   if (winRateDelta < 0) return `Win rate fell from ${from} to ${to}${pct} vs. baseline.`;
   return `Win rate held steady at ${to} vs. baseline.`;
-}
-
-/**
- * "Why it won" for the best-performing run in a family -- the real technique
- * descriptions it added over the baseline (`CONCEPT_GLOSSARY`), joined; or
- * the family's own mechanical `whatLearned` sentence when it added no new
- * technique (e.g. the baseline itself happened to win). Never new prose.
- */
-export function deriveWhyItWon(story: VariantStory, narrative: InvestigationNarrative | null): string {
-  const sentences = story.addedTechniques.map((t) => CONCEPT_GLOSSARY[t]).filter((s): s is string => Boolean(s));
-  if (sentences.length > 0) return sentences.join(" ");
-  return narrative?.whatLearned ?? "";
 }

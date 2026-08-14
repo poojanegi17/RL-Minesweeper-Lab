@@ -77,6 +77,21 @@ def _run_variant(record: ExperimentRecord, group: ExperimentGroup) -> Optional[s
     return parsed["variant"] if parsed else None
 
 
+def run_env_version(record: ExperimentRecord) -> str:
+    """Which board distribution a run trained under.
+
+    Read from the summary's own `env_version` when present. Runs that predate
+    the `--first-click-safe` flag record nothing, and are v1 by construction --
+    the setting did not exist for them to differ from, which is the same
+    derivation `rl/evaluation/generate_replays.py` applies when stamping a
+    replay ("v2" if first_click_safe != "none" else "v1"). Defaulting rather
+    than returning None keeps callers from having to treat "unknown" as a third
+    distribution when it isn't one.
+    """
+    recorded = record.summary.get("env_version")
+    return recorded if recorded in ("v1", "v2") else "v1"
+
+
 def to_run_brief(record: ExperimentRecord, group: ExperimentGroup) -> RunBrief:
     variant = _run_variant(record, group)
     win_rate = record.summary.get("win_rate")
@@ -90,6 +105,7 @@ def to_run_brief(record: ExperimentRecord, group: ExperimentGroup) -> RunBrief:
         win_rate=win_rate if isinstance(win_rate, (int, float)) else None,
         avg_reward=avg_reward if isinstance(avg_reward, (int, float)) else None,
         metrics_available=record.metrics_available,
+        env_version=run_env_version(record),
     )
 
 
@@ -167,6 +183,7 @@ def to_detail(record: ExperimentRecord, loader: ResultsLoader) -> ExperimentDeta
         has_summary=record.has_summary,
         title=record.title if family_id is None else derive_run_title(record.agent, record.episodes, parsed["variant"] if parsed else None),
         metrics_available=record.metrics_available,
+        env_version=run_env_version(record),
         techniques=record.techniques,
         family_id=family_id,
         algorithm=info["algorithm"],

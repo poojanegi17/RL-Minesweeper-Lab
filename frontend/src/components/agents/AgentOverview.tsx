@@ -4,7 +4,6 @@ import { AgentStatusBadge } from "@/components/agent/AgentStatusBadge";
 import { AGENT_ICONS } from "@/components/agent/agentIcons";
 import { CONCEPT_GLOSSARY } from "@/lib/agentExplainers";
 import { AGENT_STYLES, type AgentKind, type AgentStatus } from "@/data/types";
-import type { LeaderboardEntry } from "@/types/metrics";
 import { cn } from "@/lib/cn";
 
 interface AgentOverviewProps {
@@ -20,15 +19,18 @@ interface AgentOverviewProps {
   /** Real techniques the best recorded run actually used (`ExperimentDetail.techniques`),
    * empty for agents with no experiment artifacts (CSP, Q-Learning, Random). */
   recordedTechniques: string[];
-  leaderboardEntry: LeaderboardEntry | undefined;
 }
 
 /**
- * The page's hero/summary card: identity, a punchy one-line explanation, the
- * headline win-rate stat (tagged live vs. reference), and two distinct
- * technique lists that are careful not to blur together -- "How it works"
- * (always-true algorithm facts) vs. "Recorded in this run" (only what the
- * best actual run's data confirms).
+ * The page's hero/summary card: identity, a punchy one-line explanation, and
+ * two distinct technique lists that are careful not to blur together -- "How
+ * it works" (always-true algorithm facts) vs. "Recorded in this run" (only
+ * what the best actual run's data confirms).
+ *
+ * Deliberately carries no win-rate stat -- that number is board-config
+ * dependent, and a single fixed figure here would silently go stale the
+ * moment a visitor picks a different level/density in `AgentConfigShowcase`
+ * below, which is the actual source of per-config results.
  */
 export function AgentOverview({
   name,
@@ -38,40 +40,24 @@ export function AgentOverview({
   tagline,
   concepts,
   recordedTechniques,
-  leaderboardEntry,
 }: AgentOverviewProps) {
   const style = AGENT_STYLES[kind];
   const Icon = AGENT_ICONS[kind];
-  const winRate = leaderboardEntry?.win_rate ?? null;
 
   return (
     <Card className="flex flex-col gap-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-4">
-          <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-current/10", style.text)}>
-            <Icon className="h-6 w-6" />
-          </span>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-heading">{name}</h1>
-              <AgentStatusBadge status={status} />
-            </div>
-            <p className="mt-1.5 max-w-xl font-medium text-text">{tagline}</p>
-            <p className="mt-1 max-w-xl text-sm text-text-muted">{description}</p>
+      <div className="flex items-start gap-4">
+        <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-current/10", style.text)}>
+          <Icon className="h-6 w-6" />
+        </span>
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-3xl font-semibold tracking-tight text-heading">{name}</h1>
+            <AgentStatusBadge status={status} />
           </div>
+          <p className="mt-1.5 max-w-xl font-medium text-text">{tagline}</p>
+          <p className="mt-1 max-w-xl text-sm text-text-muted">{description}</p>
         </div>
-
-        {winRate != null && (
-          <div className="shrink-0 rounded-xl border border-border bg-surface-hover/60 px-4 py-3 text-center">
-            <p className="font-mono text-2xl font-semibold text-heading">{(winRate * 100).toFixed(1)}%</p>
-            <p className="mt-0.5 text-xs text-text-muted">
-              Win rate
-              <Badge variant="outline" className="ml-1.5 align-middle">
-                {leaderboardEntry?.source === "experiment_artifact" ? "Live" : "Reference"}
-              </Badge>
-            </p>
-          </div>
-        )}
       </div>
 
       {concepts.length > 0 && (

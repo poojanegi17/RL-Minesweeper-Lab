@@ -69,6 +69,27 @@ class MinesweeperEnv(gym.Env):
         from hidden mine positions -- so it doesn't relax the "agent only
         sees what the environment returns" fairness rule any agent in this
         project follows.
+
+    Reward scaling (`reward_scale`, default 1.0):
+        Every reward above is multiplied by `reward_scale` on the way out.
+        Scaling all rewards by a positive constant leaves the optimal policy
+        exactly unchanged, so this is purely an optimisation knob, not a
+        difficulty one. It exists because `DQNAgent.train_step` uses
+        `F.smooth_l1_loss`, whose default `beta=1.0` is the Huber transition
+        point: with rewards of +-10 essentially every TD error lands in the
+        loss's *linear* regime, where the gradient magnitude is a constant
+        regardless of how wrong the estimate is, so the network learns from
+        little more than the sign of the error. `reward_scale=0.1` puts the
+        targets back in the range the loss was designed for.
+
+    Board generation (`first_click_safe`, `guarantee_solvable`):
+        Both default to the historical behaviour (mines placed before the
+        first click, layouts never filtered), so existing seeds and published
+        benchmarks reproduce unchanged. See `Minesweeper.__init__` for what
+        each option guarantees. Note that these change the *board
+        distribution*, so any agent measured under them -- including the
+        reward-blind Random and CSP baselines -- has to be re-measured before
+        its numbers can be compared against agents measured without them.
     """
 
     metadata = {"render_modes": ["human"]}
@@ -80,20 +101,45 @@ class MinesweeperEnv(gym.Env):
         num_mines: int = 5,
         seed: Optional[int] = None,
         reward_mode: str = "default",
+        reward_scale: float = 1.0,
+        first_click_safe: str = "none",
+        guarantee_solvable: bool = False,
+        max_generation_attempts: int = 1000,
     ) -> None:
         super().__init__()
         if reward_mode not in REWARD_MODES:
             raise ValueError(f"Unknown reward_mode {reward_mode!r}; choose from {REWARD_MODES}")
+        if reward_scale <= 0.0:
+            raise ValueError(
+                f"reward_scale must be positive, got {reward_scale!r}; a non-positive scale would "
+                "flip or erase the sign of every reward and change which policy is optimal"
+            )
 
         self.rows = rows
         self.cols = cols
         self.num_mines = num_mines
         self.reward_mode = reward_mode
+        self.reward_scale = reward_scale
+        self.first_click_safe = first_click_safe
+        self.guarantee_solvable = guarantee_solvable
+        self.max_generation_attempts = max_generation_attempts
 
-        self.game = Minesweeper(rows=rows, cols=cols, num_mines=num_mines, seed=seed)
+        self.game = self._new_game(seed)
 
         self.action_space = spaces.Discrete(rows * cols)
         self.observation_space = spaces.Box(low=-1, high=8, shape=(rows, cols), dtype=np.int8)
+
+    def _new_game(self, seed: Optional[int]) -> Minesweeper:
+        """Build a `Minesweeper` carrying this env's board-generation options."""
+        return Minesweeper(
+            rows=self.rows,
+            cols=self.cols,
+            num_mines=self.num_mines,
+            seed=seed,
+            first_click_safe=self.first_click_safe,
+            guarantee_solvable=self.guarantee_solvable,
+            max_generation_attempts=self.max_generation_attempts,
+        )
 
     def reset(
         self,
@@ -105,7 +151,7 @@ class MinesweeperEnv(gym.Env):
         super().reset(seed=seed)
 
         if seed is not None:
-            self.game = Minesweeper(rows=self.rows, cols=self.cols, num_mines=self.num_mines, seed=seed)
+            self.game = self._new_game(seed)
         else:
             self.game.reset()
 
@@ -124,7 +170,10 @@ class MinesweeperEnv(gym.Env):
         observation = board_to_array(self.game.get_state())
         terminated = self.game.is_game_over()
         truncated = False
-        info: Dict[str, Any] = {"won": self.game.is_won()}
+        info: Dict[str, Any] = {
+            "won": self.game.is_won(),
+            "generation_attempts": self.game.generation_attempts,
+        }
 
         shaped = self.reward_mode == "shaped"
         if already_revealed:
@@ -141,7 +190,7 @@ class MinesweeperEnv(gym.Env):
         else:
             reward = REWARD_SAFE_REVEAL
 
-        return observation, reward, terminated, truncated, info
+        return observation, reward * self.reward_scale, terminated, truncated, info
 
     def render(self) -> None:
         """Print a human-readable view of the current board to stdout."""

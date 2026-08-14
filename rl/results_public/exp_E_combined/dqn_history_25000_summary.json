@@ -27,9 +27,19 @@
     "timestamp": "2026-08-05T04:27:21.910586+00:00"
   },
   "train_seconds": 572.3,
-  "eval_episodes": 200,
-  "win_rate": 0.02,
-  "avg_episode_length": 4.6,
-  "avg_reward": -6.0,
-  "failures": 196
+  "eval_episodes": 2000,
+  "win_rate": 0.021,
+  "avg_episode_length": 4.4595,
+  "avg_reward": -6.1205,
+  "failures": 1958,
+  "win_rate_ci95": [
+    1.557,
+    2.826
+  ],
+  "evaluation_source": "reevaluate_checkpoints.py",
+  "bootstrap_target_masked": false,
+  "buffer_size": 20000,
+  "rows": 5,
+  "cols": 5,
+  "mines": 5
 }

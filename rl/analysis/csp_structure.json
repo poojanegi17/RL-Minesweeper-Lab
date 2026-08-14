@@ -1,0 +1,83 @@
+{
+  "beginner/sparse": {
+    "win": 0.7445,
+    "first_die": 0.113,
+    "win_given_surv": 0.8393461104847801,
+    "ded": 3.546,
+    "guess": 2.2125,
+    "ratio": 1.6027118644067797,
+    "lostbet": 0.3287505984988823
+  },
+  "beginner/standard": {
+    "win": 0.434,
+    "first_die": 0.2065,
+    "win_given_surv": 0.5469439193446755,
+    "ded": 3.5115,
+    "guess": 3.16,
+    "ratio": 1.1112341772151897,
+    "lostbet": 0.30816100597095264
+  },
+  "beginner/dense": {
+    "win": 0.1075,
+    "first_die": 0.323,
+    "win_given_surv": 0.1587887740029542,
+    "ded": 1.2515,
+    "guess": 3.212,
+    "ratio": 0.3896326276463263,
+    "lostbet": 0.3460861789578632
+  },
+  "intermediate/sparse": {
+    "win": 0.8145,
+    "first_die": 0.0975,
+    "win_given_surv": 0.9024930747922437,
+    "ded": 10.1095,
+    "guess": 1.896,
+    "ratio": 5.33201476793249,
+    "lostbet": 0.13562387806172252
+  },
+  "intermediate/standard": {
+    "win": 0.609,
+    "first_die": 0.1605,
+    "win_given_surv": 0.7254318046456224,
+    "ded": 14.2005,
+    "guess": 2.687,
+    "ratio": 5.28489021213249,
+    "lostbet": 0.21183025109231116
+  },
+  "intermediate/dense": {
+    "win": 0.231,
+    "first_die": 0.2305,
+    "win_given_surv": 0.3001949317738791,
+    "ded": 10.2995,
+    "guess": 4.1175,
+    "ratio": 2.501396478445659,
+    "lostbet": 0.25877604396101794
+  },
+  "expert/sparse": {
+    "win": 0.7265,
+    "first_die": 0.1155,
+    "win_given_surv": 0.821368004522329,
+    "ded": 37.618,
+    "guess": 2.2815,
+    "ratio": 16.48827525750603,
+    "lostbet": 0.18840246979862355
+  },
+  "expert/standard": {
+    "win": 0.515,
+    "first_die": 0.1585,
+    "win_given_surv": 0.6120023767082591,
+    "ded": 45.924,
+    "guess": 3.1405,
+    "ratio": 14.62314918006687,
+    "lostbet": 0.2228265170992571
+  },
+  "expert/dense": {
+    "win": 0.063,
+    "first_die": 0.2365,
+    "win_given_surv": 0.0825147347740668,
+    "ded": 22.6605,
+    "guess": 4.9965,
+    "ratio": 4.535274692284599,
+    "lostbet": 0.23659805851397442
+  }
+}

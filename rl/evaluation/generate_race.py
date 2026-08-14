@@ -31,6 +31,7 @@ import torch
 
 from environment.minesweeper import Minesweeper
 from evaluation.agent_loading import AGENT_DISPLAY_NAMES, build_agent
+from evaluation.evaluate_board_config import env_version
 from evaluation.replay import build_shared_race
 from evaluation.shared_race import AgentEntry, simulate_shared_race
 
@@ -67,6 +68,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ppo-experiment-id", type=str, default=None, help="Load this experiment's PPO checkpoint instead of the default.")
     parser.add_argument("--output-dir", type=str, default="results/races", help="Where to write race JSON files.")
     parser.add_argument("--results-dir", type=str, default="results", help="Where to look up experiment checkpoints from.")
+    parser.add_argument(
+        "--first-click-safe",
+        choices=["none", "cell", "area"],
+        default="none",
+        help="Opening-move policy for the raced boards. Changes the board distribution, so a race "
+        "generated under one value is not comparable to one under the other -- and matters more here "
+        "than anywhere else, because whichever agent moves first in the round robin faces a fully "
+        "hidden board and, under \"none\", can simply lose on turn one through no fault of its policy.",
+    )
     parser.add_argument("--torch-threads", type=int, default=None, help="Cap CPU threads PyTorch uses.")
     return parser.parse_args()
 
@@ -106,7 +116,13 @@ def main() -> None:
                 on_episode_start()
             agents.append((AGENT_DISPLAY_NAMES[agent_slug], action_fn, reasoning_fn))
 
-        game = Minesweeper(rows=args.rows, cols=args.cols, num_mines=args.mines, seed=race_seed)
+        game = Minesweeper(
+            rows=args.rows,
+            cols=args.cols,
+            num_mines=args.mines,
+            seed=race_seed,
+            first_click_safe=args.first_click_safe,
+        )
         result = simulate_shared_race(game, agents)
 
         race = build_shared_race(
@@ -117,6 +133,9 @@ def main() -> None:
             generated_at=datetime.now(timezone.utc).isoformat(),
             turn_order=[AGENT_DISPLAY_NAMES[slug] for slug in AGENT_ORDER],
             result=result,
+            checkpoints={AGENT_DISPLAY_NAMES[slug]: experiment_ids[slug] for slug in AGENT_ORDER},
+            env={"first_click_safe": args.first_click_safe, "guarantee_solvable": False},
+            env_version=env_version(args.first_click_safe, False),
         )
 
         path = output_dir / f"race_{race_number}.json"

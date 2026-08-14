@@ -55,3 +55,30 @@ def resolve_level_dir(base_results_dir: Path, level: str, density: str) -> Path:
     if level == DEFAULT_LEVEL and density == DEFAULT_DENSITY:
         return base_results_dir
     return base_results_dir / "levels" / level / density
+
+
+# The two board distributions this project has published results under, and
+# the results subtree each one's grid lives in. `first_click_safe="area"`
+# keeps the whole 3x3 block around the opening click mine-free (v2); "none"
+# places mines before the first click, so the opening move can lose (v1).
+# They are different games -- a win rate under one is not comparable to a win
+# rate under the other -- which is why they are separate trees rather than a
+# flag on one set of files.
+FIRST_CLICK_POLICY_DIRS: Dict[str, str] = {"area": "v2", "none": "v1"}
+
+
+def is_valid_first_click_policy(policy: str) -> bool:
+    return policy in FIRST_CLICK_POLICY_DIRS
+
+
+def resolve_policy_level_dir(base_results_dir: Path, policy: str, level: str, density: str) -> Path:
+    """Which directory a `(policy, level, density)` selection reads from.
+
+    Unlike `resolve_level_dir`, "beginner"/"standard" is *not* aliased to the
+    root results directory here: the versioned trees carry their own
+    `levels/beginner/standard/` and the root holds only whichever distribution
+    happened to be re-baselined into it last. Aliasing would silently serve
+    that root under both policies and make the two indistinguishable, which is
+    the one thing this resolver exists to prevent.
+    """
+    return base_results_dir / FIRST_CLICK_POLICY_DIRS[policy] / "levels" / level / density

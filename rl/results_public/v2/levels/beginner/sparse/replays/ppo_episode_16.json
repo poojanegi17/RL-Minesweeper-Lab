@@ -1,0 +1,204 @@
+{
+  "id": "ppo_episode_16",
+  "agent": "PPO",
+  "experiment_id": "ppo_v2_J_fully_conv",
+  "board_size": "5x5",
+  "mines": 3,
+  "seed": 47,
+  "episode_number": 16,
+  "generated_at": "2026-08-14T10:44:17.105559+00:00",
+  "initial_board": [
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ],
+    [
+      -1,
+      -1,
+      -1,
+      -1,
+      -1
+    ]
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          -1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          -1
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          -1,
+          1,
+          0,
+          0,
+          0
+        ]
+      ],
+      "action": {
+        "row": 2,
+        "col": 2
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "action_probability": 0.9604424238204956
+      }
+    },
+    {
+      "step": 2,
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          -1
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          -1,
+          1,
+          0,
+          0,
+          0
+        ]
+      ],
+      "action": {
+        "row": 0,
+        "col": 4
+      },
+      "reward": 1.0,
+      "done": false,
+      "reasoning": {
+        "action_probability": 0.8669639825820923
+      }
+    },
+    {
+      "step": 3,
+      "board_state": [
+        [
+          -1,
+          -1,
+          -1,
+          -1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          -1,
+          1,
+          0,
+          0,
+          0
+        ]
+      ],
+      "action": {
+        "row": 1,
+        "col": 4
+      },
+      "reward": -10.0,
+      "done": true,
+      "reasoning": {
+        "action_probability": 0.9200448989868164
+      }
+    }
+  ],
+  "won": false,
+  "total_reward": -8.0,
+  "steps_taken": 3,
+  "env": {
+    "first_click_safe": "area",
+    "guarantee_solvable": false
+  },
+  "env_version": "v2"
+}

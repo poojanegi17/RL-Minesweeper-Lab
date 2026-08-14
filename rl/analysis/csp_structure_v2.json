@@ -1,0 +1,92 @@
+{
+  "beginner/sparse": {
+    "win": 0.911,
+    "first_die": 0.0,
+    "win_given_surv": 0.911,
+    "ded": 4.1205,
+    "guess": 1.365,
+    "ratio": 3.0186813186813186,
+    "lostbet": 0.0652014652014652,
+    "win_moves_med": 5.0
+  },
+  "beginner/standard": {
+    "win": 0.7035,
+    "first_die": 0.0,
+    "win_given_surv": 0.7035,
+    "ded": 4.9385,
+    "guess": 2.272,
+    "ratio": 2.1736355633802815,
+    "lostbet": 0.13050176056338028,
+    "win_moves_med": 7
+  },
+  "beginner/dense": {
+    "win": 0.3645,
+    "first_die": 0.0,
+    "win_given_surv": 0.3645,
+    "ded": 3.364,
+    "guess": 3.0805,
+    "ratio": 1.0920305145268625,
+    "lostbet": 0.20629767894822268,
+    "win_moves_med": 9
+  },
+  "intermediate/sparse": {
+    "win": 0.9855,
+    "first_die": 0.0,
+    "win_given_surv": 0.9855,
+    "ded": 12.378,
+    "guess": 1.1015,
+    "ratio": 11.237403540626419,
+    "lostbet": 0.013163867453472538,
+    "win_moves_med": 13
+  },
+  "intermediate/standard": {
+    "win": 0.8995,
+    "first_die": 0.0,
+    "win_given_surv": 0.8995,
+    "ded": 20.526,
+    "guess": 1.64,
+    "ratio": 12.515853658536585,
+    "lostbet": 0.06128048780487805,
+    "win_moves_med": 23
+  },
+  "intermediate/dense": {
+    "win": 0.4685,
+    "first_die": 0.0,
+    "win_given_surv": 0.4685,
+    "ded": 20.0665,
+    "guess": 4.0065,
+    "ratio": 5.008486209908898,
+    "lostbet": 0.13265942842880318,
+    "win_moves_med": 32
+  },
+  "expert/sparse": {
+    "win": 0.9505,
+    "first_die": 0.0,
+    "win_given_surv": 0.9505,
+    "ded": 48.9865,
+    "guess": 1.259,
+    "ratio": 38.90905480540111,
+    "lostbet": 0.03931691818903892,
+    "win_moves_med": 50
+  },
+  "expert/standard": {
+    "win": 0.8125,
+    "first_die": 0.0,
+    "win_given_surv": 0.8125,
+    "ded": 72.3015,
+    "guess": 1.944,
+    "ratio": 37.192129629629626,
+    "lostbet": 0.09645061728395062,
+    "win_moves_med": 78
+  },
+  "expert/dense": {
+    "win": 0.1275,
+    "first_die": 0.0,
+    "win_given_surv": 0.1275,
+    "ded": 53.886,
+    "guess": 5.895,
+    "ratio": 9.140966921119594,
+    "lostbet": 0.14800678541136555,
+    "win_moves_med": 115
+  }
+}

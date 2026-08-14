@@ -1,0 +1,53 @@
+{
+  "eval_episodes": 2000,
+  "eval_seed": 4242,
+  "eval_reward_mode": "default",
+  "runs": {
+    "exp_F_masked_target": {
+      "agent": "dqn",
+      "board": "5x5",
+      "mines": 5,
+      "network_size": "default",
+      "reported_win_rate": 0.1015,
+      "reported_eval_episodes": 2000,
+      "reported_used_checkpoint": "final_in_memory_weights",
+      "checkpoints": {
+        "final": {
+          "wins": 228,
+          "episodes": 2000,
+          "win_rate": 0.114,
+          "win_rate_ci95": [
+            10.081,
+            12.868
+          ],
+          "avg_episode_length": 5.07,
+          "avg_reward": -3.65,
+          "checkpoint_metadata": {
+            "episode": 25000,
+            "win_rate": 0.16,
+            "average_reward": -1.82,
+            "timestamp": "2026-08-10T09:14:14.560548+00:00"
+          }
+        },
+        "best": {
+          "wins": 203,
+          "episodes": 2000,
+          "win_rate": 0.1015,
+          "win_rate_ci95": [
+            8.902,
+            11.551
+          ],
+          "avg_episode_length": 5.2675,
+          "avg_reward": -3.7025,
+          "checkpoint_metadata": {
+            "episode": 20000,
+            "win_rate": 0.16,
+            "average_reward": -1.54,
+            "timestamp": "2026-08-10T09:11:26.133056+00:00"
+          }
+        }
+      }
+    }
+  },
+  "total_seconds": 7.5
+}

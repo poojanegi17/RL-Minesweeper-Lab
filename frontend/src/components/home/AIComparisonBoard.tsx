@@ -41,10 +41,9 @@ interface AIComparisonBoardProps {
 /**
  * "Now watch AI play" -- pick any agent and step through (or autoplay) a
  * real recorded episode of it, right next to a readout of the visitor's own
- * game. Built entirely from reused pieces: `useAgentReplay` (the same fetch
- * chain `DecisionExample` uses on the agent pages) and the Replay Viewer's
- * own `ReplayBoard`/`ReplayControls`/`ReplayTimeline` -- no parallel replay
- * logic here.
+ * game. Built entirely from reused pieces: `useAgentReplay` and the Replay
+ * Viewer's own `ReplayBoard`/`ReplayControls`/`ReplayTimeline` -- no parallel
+ * replay logic here.
  */
 export function AIComparisonBoard({ humanSummary }: AIComparisonBoardProps) {
   const [agent, setAgent] = useState("DQN");

@@ -1,0 +1,31 @@
+{
+  "episodes": 100000,
+  "rows": 5,
+  "cols": 5,
+  "mines": 5,
+  "reward_mode": "shaped",
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_epsilon": 0.2,
+  "entropy_coef": 0.01,
+  "value_coef": 0.5,
+  "rollout_length": 256,
+  "ppo_epochs": 10,
+  "batch_size": 32,
+  "checkpoint_every": 10000,
+  "used_checkpoint": "final_in_memory_weights",
+  "best_checkpoint_metadata": null,
+  "train_seconds": 732.9,
+  "eval_episodes": 2000,
+  "win_rate": 0.009,
+  "avg_episode_length": 3.821,
+  "avg_reward": -6.998,
+  "failures": 1982,
+  "win_rate_ci95": [
+    0.929,
+    1.957
+  ],
+  "evaluation_source": "rescored on eval seed 42 for consistency with every other run",
+  "eval_seed": 42
+}

@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.board_levels import DEFAULT_DENSITY, DEFAULT_LEVEL, is_valid, resolve_level_dir
+from app.board_levels import (
+    DEFAULT_DENSITY,
+    DEFAULT_LEVEL,
+    is_valid,
+    is_valid_first_click_policy,
+    resolve_level_dir,
+    resolve_policy_level_dir,
+)
 from app.schemas.race import RaceDetail, RaceSummary
 from app.services.race_loader import MalformedRaceError, RaceLoader, RaceNotFoundError, get_race_loader
 
@@ -43,9 +50,17 @@ def to_detail(raw: Dict[str, Any]) -> RaceDetail:
     )
 
 
-def _scoped_loader(level: str, density: str, loader: RaceLoader) -> RaceLoader:
-    """See `routes/replays.py`'s `_scoped_loader` -- same reasoning:
-    `loader.races_dir.parent` reliably recovers the base results directory."""
+def _scoped_loader(
+    level: str, density: str, loader: RaceLoader, first_click_safe: Optional[str] = None
+) -> RaceLoader:
+    """See `routes/replays.py`'s `_scoped_loader` -- same reasoning and the same
+    policy handling: `loader.races_dir.parent` reliably recovers the base
+    results directory, and an explicit policy always reads that distribution's
+    own tree, because a race played where the opening click can lose is a
+    different game from one where it cannot."""
+    if first_click_safe is not None:
+        scoped = resolve_policy_level_dir(loader.races_dir.parent, first_click_safe, level, density)
+        return RaceLoader(scoped / "races")
     if level == DEFAULT_LEVEL and density == DEFAULT_DENSITY:
         return loader
     scoped_dir = resolve_level_dir(loader.races_dir.parent, level, density)
@@ -56,6 +71,11 @@ def _scoped_loader(level: str, density: str, loader: RaceLoader) -> RaceLoader:
 def list_races(
     level: str = Query(DEFAULT_LEVEL, description="Difficulty level, e.g. \"beginner\"."),
     density: str = Query(DEFAULT_DENSITY, description="Mine-density preset, e.g. \"standard\"."),
+    first_click_safe: Optional[str] = Query(
+        None,
+        description='Board distribution: "area" (opening click opens a mine-free 3x3 block) or "none". '
+        "Omit for the default tree.",
+    ),
     loader: RaceLoader = Depends(get_race_loader),
 ) -> List[RaceSummary]:
     """List every race discoverable at the given `(level, density)` (see
@@ -63,7 +83,9 @@ def list_races(
     simply yields an empty list."""
     if not is_valid(level, density):
         raise HTTPException(status_code=400, detail=f"Unknown level/density: {level!r}/{density!r}")
-    return [to_summary(raw) for raw in _scoped_loader(level, density, loader).list_races()]
+    if first_click_safe is not None and not is_valid_first_click_policy(first_click_safe):
+        raise HTTPException(status_code=400, detail=f"Unknown first_click_safe policy: {first_click_safe!r}")
+    return [to_summary(raw) for raw in _scoped_loader(level, density, loader, first_click_safe).list_races()]
 
 
 @router.get("/{race_id}", response_model=RaceDetail)
@@ -71,13 +93,20 @@ def get_race(
     race_id: str,
     level: str = Query(DEFAULT_LEVEL, description="Difficulty level, e.g. \"beginner\"."),
     density: str = Query(DEFAULT_DENSITY, description="Mine-density preset, e.g. \"standard\"."),
+    first_click_safe: Optional[str] = Query(
+        None,
+        description='Board distribution: "area" (opening click opens a mine-free 3x3 block) or "none". '
+        "Omit for the default tree.",
+    ),
     loader: RaceLoader = Depends(get_race_loader),
 ) -> RaceDetail:
     """Full turn-by-turn timeline for one shared-board race at the given `(level, density)`."""
     if not is_valid(level, density):
         raise HTTPException(status_code=400, detail=f"Unknown level/density: {level!r}/{density!r}")
+    if first_click_safe is not None and not is_valid_first_click_policy(first_click_safe):
+        raise HTTPException(status_code=400, detail=f"Unknown first_click_safe policy: {first_click_safe!r}")
     try:
-        raw = _scoped_loader(level, density, loader).get_race(race_id)
+        raw = _scoped_loader(level, density, loader, first_click_safe).get_race(race_id)
     except RaceNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except MalformedRaceError as exc:

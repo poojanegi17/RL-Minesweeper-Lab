@@ -537,3 +537,233 @@ def test_no_checkpointing_by_default(monkeypatch):
     agent.train(env, episodes=3)  # checkpoint_dir defaults to None
 
     assert save_calls == []
+
+
+def test_double_dqn_target_never_bootstraps_from_a_revealed_cell():
+    """The bootstrap argmax must be restricted to cells still hidden.
+
+    `select_action` can never take a revealed cell, so those actions get no
+    gradient and their Q-values drift freely. An unmasked argmax would select
+    them and feed that drift back in as a target -- the feedback loop behind
+    this project's Q-value divergence.
+    """
+    agent = DQNAgent(rows=4, cols=4, seed=0)
+
+    # One next-state with a single hidden cell left, at flat index 5.
+    board = np.zeros((4, 4), dtype=np.int8)
+    board[1, 1] = -1
+    encoded = encode_observation(board)[None, ...]
+
+    # Park a huge value on every revealed action; the only hidden one is small.
+    with torch.no_grad():
+        agent.online_network.head[-1].bias.fill_(1000.0)
+        agent.online_network.head[-1].bias[5] = -1.0
+        agent.target_network.head[-1].bias.fill_(500.0)
+        agent.target_network.head[-1].bias[5] = -7.0
+
+    target = agent._double_dqn_targets(torch.from_numpy(encoded))
+
+    # Must evaluate the hidden cell (target bias -7), not a revealed one (500).
+    # Tolerance is loose because the conv/linear weights contribute a little on
+    # top of the bias -- the point is which action was selected, not the exact value.
+    assert target.item() == pytest.approx(-7.0, abs=0.5)
+
+
+def test_double_dqn_target_handles_a_next_state_with_no_hidden_cells():
+    # A winning move reveals every safe cell; masking everything would make the
+    # argmax undefined, so those rows must not produce NaN/-inf.
+    agent = DQNAgent(rows=4, cols=4, seed=0)
+    board = np.zeros((4, 4), dtype=np.int8)  # nothing hidden
+    encoded = encode_observation(board)[None, ...]
+
+    target = agent._double_dqn_targets(torch.from_numpy(encoded))
+
+    assert torch.isfinite(target).all()
+
+
+def test_train_step_still_runs_end_to_end_with_the_mask():
+    env = MinesweeperEnv(rows=5, cols=5, num_mines=5, seed=0)
+    agent = DQNAgent(rows=5, cols=5, batch_size=8, min_replay_size=8, seed=0)
+    observation, _ = env.reset()
+    for _ in range(40):
+        action = agent.select_action(observation, explore=True)
+        next_observation, reward, terminated, truncated, _ = env.step(action)
+        agent.remember(observation, action, reward, next_observation, terminated or truncated)
+        observation = next_observation if not (terminated or truncated) else env.reset()[0]
+
+    metrics = agent.train_step()
+
+    assert metrics is not None
+    assert np.isfinite(metrics["loss"]) and np.isfinite(metrics["max_q"])
+
+
+def test_epsilon_decay_rate_controls_how_long_exploration_lasts():
+    """The schedule's reach is the point, so pin it numerically.
+
+    The 0.995 default hits the 0.05 floor at episode 598, which on a
+    25,000-episode run means ~98% of training is near-greedy. 0.9998 stretches
+    the same descent across ~15,000 episodes. Both are exercised because the
+    difference between them is a real experimental variable (see exp_I).
+    """
+    for decay, expected_floor_episode in ((0.995, 598), (0.9998, 14977)):
+        agent = DQNAgent(rows=5, cols=5, epsilon_decay=decay, epsilon_min=0.05, seed=0)
+        episodes = 0
+        while agent.epsilon > agent.epsilon_min:
+            agent.decay_epsilon()
+            episodes += 1
+            assert episodes <= 20000, "epsilon never reached its floor"
+        assert episodes == pytest.approx(expected_floor_episode, rel=0.01)
+
+
+def test_epsilon_never_decays_below_its_floor():
+    agent = DQNAgent(rows=5, cols=5, epsilon_decay=0.5, epsilon_min=0.2, seed=0)
+    for _ in range(50):
+        agent.decay_epsilon()
+    assert agent.epsilon == pytest.approx(0.2)
+
+
+def test_conv_channels_length_sets_network_depth():
+    # Depth is a real experimental variable (see the "deep" preset), so the
+    # mapping from conv_channels length to layer count is pinned.
+    for widths, expected_layers in (((16,), 1), ((16, 32), 2), ((16, 32, 32, 32), 4)):
+        net = DQNNetwork(rows=5, cols=5, conv_channels=widths)
+        conv_layers = [m for m in net.conv if isinstance(m, torch.nn.Conv2d)]
+        assert len(conv_layers) == expected_layers
+        assert conv_layers[-1].out_channels == widths[-1]
+        # The flattened head only depends on the *last* conv width, whatever
+        # the depth, so the output stays one Q-value per cell.
+        assert net(torch.zeros((2, NUM_CHANNELS, 5, 5))).shape == (2, 25)
+
+
+def test_deep_preset_adds_depth_not_width():
+    default_net = DQNNetwork(rows=5, cols=5, **NETWORK_PRESETS["default"])
+    deep_net = DQNNetwork(rows=5, cols=5, **NETWORK_PRESETS["deep"])
+
+    default_convs = [m for m in default_net.conv if isinstance(m, torch.nn.Conv2d)]
+    deep_convs = [m for m in deep_net.conv if isinstance(m, torch.nn.Conv2d)]
+
+    assert len(deep_convs) > len(default_convs)
+    # The overlapping layers keep the default's widths, so depth is the variable.
+    for shallow_layer, deep_layer in zip(default_convs, deep_convs):
+        assert shallow_layer.out_channels == deep_layer.out_channels
+
+
+def test_network_rejects_an_empty_conv_stack():
+    with pytest.raises(ValueError):
+        DQNNetwork(rows=5, cols=5, conv_channels=())
+
+
+def test_deep_preset_is_selectable_through_the_agent():
+    agent = DQNAgent(rows=5, cols=5, network_size="deep", seed=0)
+    conv_layers = [m for m in agent.online_network.conv if isinstance(m, torch.nn.Conv2d)]
+    assert len(conv_layers) == 4
+    # Target network must be built the same way, or syncing would fail.
+    assert len([m for m in agent.target_network.conv if isinstance(m, torch.nn.Conv2d)]) == 4
+    agent.update_target_network()
+
+
+# --- Fully-convolutional head and train_every ---------------------------
+
+
+def test_linear_head_remains_the_default():
+    # Existing checkpoints were all trained with the flatten-and-Linear head,
+    # so the default must not move or they stop loading.
+    net = DQNNetwork(rows=5, cols=5)
+    assert net.head_type == "linear"
+    assert NETWORK_PRESETS["default"].get("head_type", "linear") == "linear"
+
+
+def test_unknown_head_type_rejected():
+    with pytest.raises(ValueError, match="Unknown head_type"):
+        DQNNetwork(rows=5, cols=5, head_type="bogus")
+
+
+def test_conv_head_output_matches_linear_head_contract():
+    board = np.random.randint(-1, 9, size=(5, 5))
+    batch = torch.from_numpy(encode_observation(board))[None]
+    for preset in ("default", "fully_conv"):
+        out = DQNNetwork(5, 5, **NETWORK_PRESETS[preset])(batch)
+        assert out.shape == (1, 25), preset
+
+
+def test_conv_head_parameter_count_is_independent_of_board_size():
+    counts = {
+        size: sum(p.numel() for p in DQNNetwork(size, size, **NETWORK_PRESETS["fully_conv"]).parameters())
+        for size in (5, 9, 16)
+    }
+    assert len(set(counts.values())) == 1, counts
+    # And it must stay far below the linear head it replaces, which is the
+    # point of the preset -- the Linear layer dominates at every board size.
+    linear_16 = sum(p.numel() for p in DQNNetwork(16, 16, **NETWORK_PRESETS["default"]).parameters())
+    assert counts[16] < linear_16 / 10
+
+
+@pytest.mark.parametrize("rows,cols", [(5, 5), (9, 9), (16, 16), (9, 16)])
+def test_conv_head_network_accepts_boards_it_was_not_built_for(rows, cols):
+    # Zero-shot transfer: one set of weights, any board size.
+    net = DQNNetwork(6, 6, **NETWORK_PRESETS["fully_conv"])
+    board = np.random.randint(-1, 9, size=(rows, cols))
+    out = net(torch.from_numpy(encode_observation(board))[None])
+    assert out.shape == (1, rows * cols)
+
+
+def test_agent_with_conv_head_plays_a_larger_board_than_it_was_built_for():
+    agent = DQNAgent(rows=6, cols=6, network_size="fully_conv", seed=0)
+    env = MinesweeperEnv(rows=9, cols=9, num_mines=10, seed=0)
+    observation, _ = env.reset()
+    terminated = truncated = False
+    steps = 0
+    while not (terminated or truncated) and steps < 50:
+        action = agent.select_action(observation, explore=False)
+        assert 0 <= action < 81
+        observation, _, terminated, truncated, _ = env.step(action)
+        steps += 1
+    assert steps > 0
+
+
+def test_train_every_defaults_to_one_and_rejects_zero():
+    assert DQNAgent(rows=5, cols=5, seed=0).train_every == 1
+    with pytest.raises(ValueError, match="train_every must be at least 1"):
+        DQNAgent(rows=5, cols=5, train_every=0, seed=0)
+
+
+def test_train_every_reduces_gradient_step_count(monkeypatch):
+    calls = {"n": 0}
+
+    def make_agent(train_every):
+        agent = DQNAgent(
+            rows=5, cols=5, min_replay_size=1, batch_size=4, train_every=train_every, seed=0
+        )
+        real = agent.train_step
+
+        def counted():
+            calls["n"] += 1
+            return real()
+
+        agent.train_step = counted
+        return agent
+
+    env = MinesweeperEnv(rows=5, cols=5, num_mines=5, seed=0)
+
+    calls["n"] = 0
+    make_agent(1).train(env, episodes=30)
+    every_one = calls["n"]
+
+    calls["n"] = 0
+    make_agent(4).train(env, episodes=30)
+    every_four = calls["n"]
+
+    assert every_one > every_four
+    # Not exactly 4x, since episode counts vary between the two runs, but the
+    # reduction should be substantial rather than incidental.
+    assert every_four < every_one / 2
+
+
+def test_train_every_cycle_spans_episodes():
+    # The counter is global, not per-episode: with 4-step episodes and
+    # train_every=4, a per-episode counter would fire on every episode's 4th
+    # step, which would silently defeat the setting on short episodes.
+    agent = DQNAgent(rows=5, cols=5, train_every=4, seed=0)
+    env = MinesweeperEnv(rows=5, cols=5, num_mines=5, seed=0)
+    agent.train(env, episodes=5)
+    assert agent._steps_since_reset > 0

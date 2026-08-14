@@ -1,0 +1,23 @@
+{
+  "agent": "PPO",
+  "level": "beginner",
+  "density": "standard",
+  "rows": 5,
+  "cols": 5,
+  "mines": 5,
+  "env_version": "v2",
+  "env": {
+    "first_click_safe": "area",
+    "guarantee_solvable": false
+  },
+  "eval_episodes": 2000,
+  "win_rate": 0.079,
+  "win_rate_ci95": [
+    6.797,
+    9.165
+  ],
+  "avg_episode_length": 3.307,
+  "avg_reward": -6.113,
+  "failures": 1842,
+  "checkpoint_source": "ppo_v2_J_fully_conv"
+}

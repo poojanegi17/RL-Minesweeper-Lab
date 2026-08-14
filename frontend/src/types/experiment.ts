@@ -24,7 +24,16 @@ export interface RunBrief {
   win_rate: number | null;
   avg_reward: number | null;
   metrics_available: boolean;
+  /** Which board distribution this run trained under: "v1" (mines placed
+   * before the first click, so the opening move can lose) or "v2"
+   * (`first_click_safe: "area"`). The two are different games and their win
+   * rates are not comparable, so anything picking a "best" run must compare
+   * only within one -- see `bestRunForEnv`. Runs predating the flag are "v1"
+   * by construction. */
+  env_version: EnvVersion;
 }
+
+export type EnvVersion = "v1" | "v2";
 
 /** Aggregated evaluation metrics across a family's (or standalone entry's) runs.
  * Computed only from runs that actually recorded a `win_rate` -- `null`/`0` when none did. */
@@ -66,6 +75,13 @@ export interface EvaluationMetrics {
   avg_episode_length: number | null;
   failures: number | null;
   eval_episodes: number | null;
+  /** `[low, high]` as percentages -- a Wilson score interval. Non-null only for
+   * runs re-scored by `evaluation/reevaluate_checkpoints.py`; a null here means
+   * `win_rate` is still the 200-episode figure the training script wrote, which
+   * at a ~1-3% win rate rests on a handful of wins. */
+  win_rate_ci95: [number, number] | null;
+  /** Which tool produced `win_rate`, when it wasn't the training script itself. */
+  evaluation_source: string | null;
 }
 
 /** Arbitrary hyperparameter/training-config value: whatever a given experiment
@@ -113,6 +129,8 @@ export interface ExperimentDetail {
   /** Uses this run's variant suffix when it belongs to a family -- see `RunBrief.title`. */
   title: string;
   metrics_available: boolean;
+  /** Board distribution this run trained under -- see `RunBrief.env_version`. */
+  env_version: EnvVersion;
   techniques: string[];
   /** The family this run belongs to (fetch via `GET /api/experiments/{family_id}`), or null if standalone. */
   family_id: string | null;

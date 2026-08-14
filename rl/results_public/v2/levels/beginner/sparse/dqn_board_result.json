@@ -1,0 +1,23 @@
+{
+  "agent": "DQN",
+  "level": "beginner",
+  "density": "sparse",
+  "rows": 5,
+  "cols": 5,
+  "mines": 3,
+  "env_version": "v2",
+  "env": {
+    "first_click_safe": "area",
+    "guarantee_solvable": false
+  },
+  "eval_episodes": 2000,
+  "win_rate": 0.894,
+  "win_rate_ci95": [
+    87.974,
+    90.674
+  ],
+  "avg_episode_length": 3.644,
+  "avg_reward": 10.524,
+  "failures": 212,
+  "checkpoint_source": "dqn_v2_A_baseline"
+}
