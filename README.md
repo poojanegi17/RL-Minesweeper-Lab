@@ -1,4 +1,4 @@
-# 🧠 RL Minesweeper Lab
+# RL Minesweeper Lab
 
 Five agents learning (or deducing) Minesweeper on one shared benchmark, with every number on the
 site read live from a real recorded run.
@@ -8,7 +8,7 @@ site read live from a real recorded run.
 
 ---
 
-## 📖 What this is
+## What this is
 
 Minesweeper is a good research board because it is two problems at once. Most of a game is
 **deducible** — a revealed `2` with two hidden neighbours proves both are mines. The rest is
@@ -23,7 +23,7 @@ figure is hand-typed into the UI — the API serves the same JSON the training s
 
 ---
 
-## 🤖 The five agents
+## The five agents
 
 | Agent | How it decides | Learns? |
 |---|---|---|
@@ -38,7 +38,7 @@ comparison of the algorithms rather than of their inputs.
 
 ---
 
-## ⚠️ Two board distributions — read before comparing anything
+## Two board distributions — read before comparing anything
 
 Every result belongs to one of two environments. They are **different games** and their win rates
 must never be subtracted from one another.
@@ -56,7 +56,7 @@ The site has a toggle for this on every table, chart, replay and race. It never 
 
 ---
 
-## 🏁 Results
+## Results
 
 The benchmark board: **5×5, 5 mines, 2,000 greedy evaluation episodes, seed 42**. Every agent
 faces the identical 2,000 boards.
@@ -81,7 +81,7 @@ also why it collapses to 1.90% on v1, where the board distribution is far wider.
 
 ---
 
-## 📐 Across board sizes and densities
+## Across board sizes and densities
 
 Three board sizes × three mine densities. DQN and PPO are trained once per (level, environment) at
 standard density and evaluated at the other two **without retraining**, so density is the only
@@ -129,7 +129,7 @@ Density, not size, is what breaks every agent: CSP itself falls to 12.75% at Exp
 
 ---
 
-## 🔬 The research pipelines
+## The research pipelines
 
 Each learned agent has a per-level pipeline on the Research page, told as a handful of **decisions**
 rather than one card per run. Every chapter reads its headline number from the API.
@@ -237,7 +237,7 @@ and 0.00%**.
 
 ---
 
-## 🔁 Zero-shot transfer
+## Zero-shot transfer
 
 Because `fully_conv` weights are board-size-independent, a 5×5 checkpoint can be loaded at 9×9 with
 no retraining. This is the first thing the conv head made testable.
@@ -263,7 +263,7 @@ they appear.
 
 ---
 
-## 🧩 Environment and encoding
+## Environment and encoding
 
 **Board encoding — 11 channels, one-hot.** A hidden mask, a revealed mask, and one channel per
 adjacent-mine count 0–8. Minesweeper's clue numbers are categorical, not continuous: a single scalar
@@ -284,7 +284,7 @@ resamples until the board is clearable without guessing.
 
 ---
 
-## 🏗️ Network presets
+## Network presets
 
 | Preset | 5×5 | 9×9 | 16×16 | Head |
 |---|---|---|---|---|
@@ -308,7 +308,7 @@ Intermediate. `fully_conv` deepens the stack to four layers for a 9×9 receptive
 
 ---
 
-## 📏 Methodology
+## Methodology
 
 **2,000 greedy episodes per figure, fixed evaluation seed 42.** On this benchmark a good agent wins
 1–40% of games, so the number of *wins* sets the precision, not the number of episodes. At 2,000
@@ -349,7 +349,7 @@ by around two points.
 
 ---
 
-## 💻 The application
+## The application
 
 **Frontend** — React + TypeScript + Vite, Tailwind, framer-motion, Recharts.
 
@@ -387,7 +387,7 @@ python -m evaluation.compact_public_histories             # compact in place
 
 ---
 
-## 📁 Repository structure
+## Repository structure
 
 ```
 ├── frontend/                 # React + TypeScript + Vite
@@ -417,7 +417,7 @@ python -m evaluation.compact_public_histories             # compact in place
 
 ---
 
-## ▶️ Running locally
+## Running locally
 
 **Backend**
 
@@ -458,7 +458,7 @@ python -m evaluation.rebaseline_board_configs --agents dqn --levels beginner \
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 Frontend on Vercel, backend on Render. The backend is stateless and read-only, so a normal
 `git clone` plus deploy already has everything it needs.
@@ -476,7 +476,7 @@ commit a production URL. `frontend/.env.example` documents it.
 
 ---
 
-## 🔭 Future work
+## Future work
 
 **1. DQN at Expert (16×16).** The most valuable missing run, and the only board size where no
 learned agent has been trained under the current recipe. Everything needed now exists: `fully_conv`
@@ -512,7 +512,7 @@ The zero-shot numbers above are the baseline any curriculum has to beat.
 
 ---
 
-## 🎯 Closing
+## Closing
 
 The headline this project started with was that no learned agent beats explicit deduction. That is
 no longer true: given a survivable opening click and a spent training budget, DQN passes CSP at 5×5

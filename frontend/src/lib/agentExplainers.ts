@@ -200,7 +200,7 @@ export const AGENT_EXPLAINERS: Record<AgentKind, AgentExplainerConfig> = {
         icon: Target,
         example: [
           { label: "(0,0)", value: "0.12" },
-          { label: "(0,1)", value: "0.87 ⭐", highlight: true },
+          { label: "(0,1)", value: "0.87", highlight: true },
           { label: "(0,2)", value: "0.21" },
         ],
       },
