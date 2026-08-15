@@ -5,6 +5,16 @@
  * dark/cinematic aesthetic now (see `ThemeProvider`), not just this page.
  * `.landing-page` itself (color, selection tint) stays scoped to the
  * landing page's own markup; `.glossy-scope` is the part reused site-wide.
+ *
+ * Never hand-write `-webkit-backdrop-filter` next to `backdrop-filter` here.
+ * The production minifier (Lightning CSS, via Vite) treats an author-written
+ * prefixed declaration as authoritative and *deletes* the standard property
+ * that precedes it, so a rule written with both ships with only the `-webkit-`
+ * form. That survived Chrome-on-localhost (the dev server serves this file
+ * unminified) and silently dropped the blur on the deployed build -- the glass
+ * cards on /about went flat see-through with the board legible through them.
+ * Written with the standard property alone, the minifier adds the prefix
+ * itself, and both end up in `dist`.
  */
 
 .landing-page {
@@ -54,7 +64,6 @@
 .glossy-scope .bg-surface,
 .glossy-scope .bg-surface-hover {
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 /* --- Liquid glass card treatment -------------------------------------- */
@@ -126,7 +135,6 @@
 .glossy-scope.liquid-glass {
   background: rgba(255, 255, 255, 0.012);
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   overflow: visible;
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.12),
@@ -167,7 +175,6 @@
      * glass panel rather than as glass themselves. This is just enough to feel
      * like a second pane. */
     backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
   }
 
@@ -312,7 +319,6 @@
 .lp-agent-card {
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.4));
   backdrop-filter: blur(14px) brightness(0.91);
-  -webkit-backdrop-filter: blur(14px) brightness(0.91);
   border: 1px solid rgba(255, 255, 255, 1);
   border-radius: 28px;
   padding: 24px;
@@ -362,7 +368,6 @@
 .landing-page .lp-wheel-card {
   background: linear-gradient(150deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
   backdrop-filter: blur(40px) saturate(140%) brightness(0.45);
-  -webkit-backdrop-filter: blur(40px) saturate(140%) brightness(0.45);
   box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
 }
 
@@ -551,7 +556,6 @@
 .landing-page .lp-wheel-panel {
   background: linear-gradient(160deg, rgba(11, 14, 20, 0.88), rgba(8, 10, 14, 0.8));
   backdrop-filter: blur(80px) saturate(140%) brightness(0.3);
-  -webkit-backdrop-filter: blur(80px) saturate(140%) brightness(0.3);
   border: 1px solid rgba(34, 211, 238, 0.55);
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.16),
