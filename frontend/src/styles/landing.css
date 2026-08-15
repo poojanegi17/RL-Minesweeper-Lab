@@ -39,11 +39,18 @@
  * impossible rather than relying on every future call site remembering not
  * to combine them. */
 .glossy-scope.glossy-scope {
-  --color-surface: rgba(255, 255, 255, 0.05);
-  --color-surface-hover: rgba(255, 255, 255, 0.09);
-  --color-border: rgba(255, 255, 255, 0.14);
+  --color-surface: rgba(255, 255, 255, 0.06);
+  --color-surface-hover: rgba(255, 255, 255, 0.1);
+  --color-border: rgba(255, 255, 255, 0.16);
 }
 
+/* `bg-surface` is deliberately left as a *light* treatment here. It is not a
+ * card token -- it is also on rounded pills (`TechStackGrid`), progress-bar
+ * tracks (`LeaderboardShowcase`), segmented toggles (`ObservationVisualizer`,
+ * `LevelDensitySelector`) and individual board tiles. Anything heavy applied
+ * here lands on a 2px-tall progress track and a 9x9 grid of tiles as well as on
+ * a panel, which is why the card treatment lives on `.glass-card` below
+ * instead. */
 .glossy-scope .bg-surface,
 .glossy-scope .bg-surface-hover {
   backdrop-filter: blur(10px);
@@ -52,7 +59,13 @@
 
 /* --- Liquid glass card treatment -------------------------------------- */
 
-.landing-page .liquid-glass {
+/* Deliberately *not* scoped to `.landing-page`. `Layout.tsx` puts this class on
+ * the content panel of every non-landing route, and `.landing-page` exists only
+ * on `/` -- so while this rule was scoped, that panel silently rendered with no
+ * background, no blur and no glass edge, leaving the whole of `/agents`,
+ * `/research`, `/compare`, `/replay` and `/about` sitting bare on the animated
+ * board. Unscoping it is what makes those pages glass at all. */
+.liquid-glass {
   background: rgba(255, 255, 255, 0.01);
   background-blend-mode: luminosity;
   backdrop-filter: blur(4px);
@@ -62,7 +75,7 @@
   overflow: hidden;
 }
 
-.landing-page .liquid-glass::before {
+.liquid-glass::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -83,6 +96,110 @@
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
+}
+
+/* The site-wide content panel (`Layout.tsx`) -- the one sheet of glass every
+ * non-landing route's content sits on.
+ *
+ * This selector matches only that element: everywhere else on the landing page
+ * `.glossy-scope` is on an *inner* div, never on the `.liquid-glass` element
+ * itself, so those keep the thin decorative glass above.
+ *
+ * It stays deliberately close to that decorative glass rather than becoming a
+ * dark slab. An earlier pass here ran `brightness(0.58)` behind a 72px blur,
+ * which did make text maximally readable but erased the board completely --
+ * the panel read as near-black, and the cards on it read as grey boxes. The
+ * point of the reference card is that you can still see the board through it,
+ * softly out of focus. So the fill stays near-transparent and the blur only
+ * has to take the board out of focus, not out of existence.
+ *
+ * The blur is raised above the reference card's 4px only because this panel
+ * carries dense body text and sits high on the page, where the board's radial
+ * mask is at full strength -- the reference card sits at the bottom of the home
+ * page, where the mask has already faded most of the board away for it.
+ *
+ * `overflow` is put back to `visible`: `.liquid-glass` hides it so nested
+ * content respects the rounded corners, which is right for a small card but
+ * wrong for a page wrapper -- it would clip every `Dropdown`/`Select` popover
+ * that opens near an edge. The gradient edge in `::before` is `inset: 0` and
+ * does not rely on clipping. */
+.glossy-scope.liquid-glass {
+  background: rgba(255, 255, 255, 0.012);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow: visible;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.12),
+    0 40px 90px -40px rgba(0, 0, 0, 0.8);
+}
+
+/* --- The card treatment (`components/ui/Card.tsx`) ---------------------- */
+
+/* Every card on `/agents`, `/research`, `/compare`, `/replay` and `/about`
+ * routes through `Card`, so this is where their surface is defined rather than
+ * on the `bg-surface` token they used to lean on.
+ *
+ * The treatment is deliberately the same as the research-pipeline card on the
+ * home page (`.liquid-glass` above): a near-transparent fill, a light blur, an
+ * inset top highlight, and the bright top/bottom gradient edge from `::before`.
+ * It is not a copy of the class itself because `.liquid-glass` also sets
+ * `overflow: hidden`, which on a card would clip any `Dropdown`/`Select`
+ * popover opened inside it -- `Compare` and `Replay` both do exactly that.
+ *
+ * This is in `@layer components` on purpose. Tailwind's utilities live in a
+ * later layer, so a call site that passes its own `bg-*` or `border-*` still
+ * wins -- `about/ProjectScaleMetrics`, `about/RepositoryCallout`,
+ * `about/TechStackGrid` and both `ObservationVisualizer`s all pass gradient
+ * fills that an unlayered rule here would silently stomp.
+ *
+ * The readability of the text on these cards comes from the page panel behind
+ * them (`.glossy-scope.liquid-glass`), which is what does the heavy frosting of
+ * the board. That is the same reason the pipeline card can be this light and
+ * still read: it does not fight the background directly, something else has
+ * already taken the background down. */
+@layer components {
+  .glass-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.035);
+    /* Only 3px. The page panel underneath already blurs the board at 8px, and
+     * blurring an out-of-focus backdrop a second time flattens the last of its
+     * texture -- which is what made these read as solid grey boxes sitting on a
+     * glass panel rather than as glass themselves. This is just enough to feel
+     * like a second pane. */
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.4px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0.15) 20%,
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(255, 255, 255, 0.15) 80%,
+      rgba(255, 255, 255, 0.45) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .glass-card-interactive:hover {
+    background: rgba(255, 255, 255, 0.055);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.18),
+      0 18px 40px -24px rgba(0, 0, 0, 0.85);
+  }
 }
 
 /* --- Shiny gradient headline animation --------------------------------- */
@@ -228,15 +345,25 @@
    a wheel: the depth cue already does that job (the selected card is genuinely
    nearer the camera), and animating `transform` on a child of a `preserve-3d`
    chain is what makes these stacks flatten and judder mid-rotation. */
-/* A thinner, clearer glass than the default panel treatment. The point of a
-   wheel is depth, so the front card has to read as something you are looking
-   *through* -- a heavier blur would smear the cards behind it into a wash and
-   flatten the whole effect. Lower blur, near-zero fill, slight saturation lift
-   so the cards behind keep their colour. */
+/* Glass, but glass you can read a title through.
+ *
+ * This was near-invisible (a 1.2% fill and a 2px blur) on the theory that a
+ * wheel is about depth and the front card should be something you look
+ * *through*. In practice the thing behind it is not the other cards, it is the
+ * animated board -- so its tile lattice and glowing frontier cells came
+ * straight through the card and collided with the card's own text.
+ *
+ * The blur still has to clear one board-tile width (~50-70px) or the grid stays
+ * resolvable through the card -- see the note on `.glossy-scope .bg-surface`.
+ * The depth cue the old low blur was protecting is not lost by raising it: what
+ * separates the cards on this wheel is real perspective, scale and the
+ * per-card brightness ramp in `WheelCarousel`, none of which the backdrop
+ * filter touches. */
 .landing-page .lp-wheel-card {
-  background: rgba(255, 255, 255, 0.012);
-  backdrop-filter: blur(2px) saturate(118%);
-  -webkit-backdrop-filter: blur(2px) saturate(118%);
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(40px) saturate(140%) brightness(0.45);
+  -webkit-backdrop-filter: blur(40px) saturate(140%) brightness(0.45);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
 }
 
 /* Both selectors are `.landing-page`-scoped deliberately. `.landing-page
@@ -245,7 +372,7 @@
    active card's "brighter edge" never appeared. */
 .landing-page .lp-wheel-card--active {
   border: 1px solid rgba(34, 211, 238, 0.75);
-  background: rgba(34, 211, 238, 0.045);
+  background: linear-gradient(150deg, rgba(34, 211, 238, 0.14), rgba(34, 211, 238, 0.05));
   box-shadow:
     0 0 0 1px rgba(34, 211, 238, 0.28),
     inset 0 1px 1px rgba(255, 255, 255, 0.22),
@@ -411,14 +538,24 @@
    dims and blurs whatever is behind the panel while the panel itself stays a
    thin, tinted surface, which is what keeps it glassy rather than solid.
 
-   The cyan edge ties it back to the active card it expanded from. */
+   The cyan edge ties it back to the active card it expanded from.
+
+   It is also the topmost surface in the section, so it is the *heaviest* glass
+   on the page rather than the lightest. Six lit cards plus the board is the
+   busiest backdrop anything on this site has to sit on, and at
+   `brightness(0.42)` over a thin white fill the paragraph text underneath it
+   was still competing with card titles showing through. A dark tinted fill now
+   carries most of the contrast and the backdrop filter finishes the job, which
+   is also what makes it read as being *in front of* the wheel: a panel you can
+   see the wheel through reads as part of it. */
 .landing-page .lp-wheel-panel {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
-  backdrop-filter: blur(26px) saturate(135%) brightness(0.42);
-  -webkit-backdrop-filter: blur(26px) saturate(135%) brightness(0.42);
-  border: 1px solid rgba(34, 211, 238, 0.45);
+  background: linear-gradient(160deg, rgba(11, 14, 20, 0.88), rgba(8, 10, 14, 0.8));
+  backdrop-filter: blur(80px) saturate(140%) brightness(0.3);
+  -webkit-backdrop-filter: blur(80px) saturate(140%) brightness(0.3);
+  border: 1px solid rgba(34, 211, 238, 0.55);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.18),
-    0 0 0 1px rgba(34, 211, 238, 0.15),
-    0 30px 80px -24px rgba(0, 0, 0, 0.85);
+    inset 0 1px 1px rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(34, 211, 238, 0.18),
+    0 0 60px -10px rgba(0, 210, 255, 0.28),
+    0 30px 90px -20px rgba(0, 0, 0, 0.95);
 }

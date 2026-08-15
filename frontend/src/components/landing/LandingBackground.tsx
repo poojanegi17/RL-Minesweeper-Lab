@@ -20,7 +20,11 @@ import { cellKey, computeFrontier, generateBoard, revealCascade, type GeneratedB
  * light/shadow rather than drawn outlines, so the whole grid reads as one
  * continuous surface.
  */
-const COLS = 26;
+/** Exported because `Layout`'s vertical guide lines snap themselves onto this
+ * grid's seams. If the two ever disagree the guides land mid-tile and read as a
+ * second, misaligned set of board lines -- which is exactly what happened while
+ * they were positioned at a fixed `36rem` instead. */
+export const COLS = 26;
 const ROWS = 14;
 const MINE_DENSITY = 0.16;
 const INITIAL_REVEAL_FRACTION = 0.16;

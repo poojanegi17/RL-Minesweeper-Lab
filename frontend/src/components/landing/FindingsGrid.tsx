@@ -112,7 +112,7 @@ export function FindingsGrid() {
         transition={{ duration: 0.7, delay: 0.1 }}
         className="mt-4 text-center text-xs text-white/50"
       >
-        Six results we did not expect — hover a card to read it in full.
+        Six results we did not expect — hover a card to bring it to the front.
       </motion.p>
 
       <motion.div
@@ -122,8 +122,10 @@ export function FindingsGrid() {
         transition={{ duration: 0.7, delay: 0.2 }}
         // Extra gap, not decoration: the detail panel is taller than the
         // stage and overhangs it, so this is the clearance that keeps it from
-        // ever creeping up on the heading whichever card is open.
-        className="mt-12 w-full"
+        // ever creeping up on the heading whichever card is open. Widened
+        // when the panel became fixed at the tallest finding's height -- at
+        // `mt-12` its top edge sat on the line of copy above.
+        className="mt-24 w-full"
       >
         {status === "loading" && (
           <div className="flex justify-center">
@@ -183,7 +185,10 @@ function FindingCard({ finding, state }: { finding: Finding; state: WheelItemSta
  * consistency here. */
 function FindingDetail({ finding }: { finding: Finding }) {
   return (
-    <div className="lp-wheel-panel w-[340px] max-w-[88vw] rounded-2xl p-6">
+    // `h-full` so every finding fills the height the carousel reserves for the
+    // longest one. The shortest quote here is a third the length of the
+    // longest, so without this the panel visibly resized on every rotation.
+    <div className="lp-wheel-panel flex h-full w-[340px] max-w-[88vw] flex-col rounded-2xl p-6">
       <p className="text-sm leading-snug font-semibold text-white">{finding.attribution}</p>
       <p className="mt-1.5 text-[10px] font-semibold tracking-wide text-white/45 uppercase">{finding.context}</p>
       <p className="mt-4 border-t border-white/10 pt-4 text-xs leading-relaxed text-white/85">{finding.quote}</p>

@@ -20,13 +20,18 @@ interface WheelCarouselProps<T> {
   cardHeight?: number;
   ariaLabel?: string;
   className?: string;
-  /** Optional detail panel for the active item, floated *over* the wheel.
+  /** Optional detail panel for the active item, floated *over* the wheel and
+   * open from the start.
    *
    * This exists so a card can stay small while its full content still has
    * somewhere to go. Growing the active card in place would force every seat
    * on the cylinder to be sized for the longest item, which makes the whole
    * wheel bigger to serve one card at a time. The panel is rendered outside
-   * the stage's `overflow-hidden` so it is free to be larger than a card. */
+   * the stage's `overflow-hidden` so it is free to be larger than a card.
+   *
+   * Called once per item, not once per render: every item is also rendered
+   * invisibly to fix the panel's height at the tallest one. Keep it pure and
+   * cheap, and expect `isActive` to be false on those sizing copies. */
   renderOverlay?: (item: T, state: WheelItemState) => ReactNode;
 }
 
@@ -112,12 +117,6 @@ export function WheelCarousel<T>({
   // Measured, not assumed: the wheel is shrunk to whatever width it actually
   // gets, so it never widens past its column at any viewport.
   const [stageWidth, setStageWidth] = useState(0);
-  // The detail panel is opt-in, not the resting state: the wheel first reads
-  // as six plain cards, and only opens once the visitor actually engages with
-  // it. Tracked separately from `activeIndex` because index 0 is active from
-  // the start -- keying the panel off selection alone would have it open on
-  // load, before anyone has touched anything.
-  const [expanded, setExpanded] = useState(false);
   const reduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -170,9 +169,6 @@ export function WheelCarousel<T>({
   const select = useCallback(
     (index: number) => {
       if (index < 0 || index >= count) return;
-      // Set before the early return: hovering the card that is *already* at
-      // the front is still an engagement, and must open it.
-      setExpanded(true);
       if (index === activeIndex) return;
       setRotation((current) => current + shortestDelta(current, -index * step));
       setActiveIndex(index);
@@ -202,7 +198,11 @@ export function WheelCarousel<T>({
     : { type: "spring" as const, stiffness: 52, damping: 15, mass: 1.05 };
 
   return (
-    <div className={cn("relative flex flex-col items-center gap-8", className)}>
+    // The gap has to clear the detail panel, not just the stage. The panel is
+    // sized to the tallest item and centred on the stage, so it overhangs top
+    // and bottom by half the difference -- at the findings wheel that is ~32px,
+    // and at `gap-8` the panel's lower edge landed exactly on the dots.
+    <div className={cn("relative flex flex-col items-center gap-16", className)}>
       <div
         ref={containerRef}
         role="group"
@@ -215,8 +215,14 @@ export function WheelCarousel<T>({
         // is safe because this element carries `perspective` but not
         // `preserve-3d` -- the flattening rule applies to the wheel inside it,
         // which is untouched.
-        className="relative w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-[#00d2ff]/50"
-        style={{ height: stageHeight, perspective: `${perspective}px` }}
+        className="relative z-0 w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-[#00d2ff]/50"
+        // `isolation` + an explicit `z-0` pin the whole wheel to one stacking
+        // context at z-index 0, so the detail panel's `z-[70]` is compared
+        // against the *stage* rather than against individual cards. Without
+        // it the cards' own z-indices (up to 100) and the compositing layer
+        // that `preserve-3d` promotes them into can both put a card in front
+        // of the panel that is supposed to be floating over it.
+        style={{ height: stageHeight, perspective: `${perspective}px`, isolation: "isolate" }}
       >
         <motion.div
           className="absolute inset-0"
@@ -280,27 +286,53 @@ export function WheelCarousel<T>({
         </motion.div>
       </div>
 
-      {renderOverlay && expanded && (
+      {renderOverlay && (
         // `pointer-events-none` keeps the wheel fully hoverable underneath:
         // the panel is read-only, so it must never become a dead zone that
         // blocks selecting the card it is sitting on top of.
+        //
+        // The panel is always open rather than opt-in. The front card is the
+        // one being read, so it stays expanded from load instead of waiting
+        // for the visitor to discover that hovering does something.
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 z-[60] flex items-center justify-center px-4"
+          className="pointer-events-none absolute inset-x-0 top-0 z-[70] flex items-center justify-center px-4"
           style={{ height: stageHeight }}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeIndex}
-              initial={{ opacity: 0, scale: 0.94, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97, y: -6 }}
-              transition={{ duration: 0.28, ease: "easeOut" }}
-              // Width is the panel's own business -- this only centres it.
-              className="max-w-full"
-            >
-              {renderOverlay(items[activeIndex], { index: activeIndex, isActive: true })}
-            </motion.div>
-          </AnimatePresence>
+          {/* One grid cell holding every panel at once. The hidden copies are
+              load-bearing: they make this box as tall as the *tallest* item,
+              so the open panel is one fixed size for every card instead of
+              resizing as the wheel turns. Sizing it any other way needs the
+              content measured first, which cannot happen before paint.
+
+              `visibility: hidden` rather than unmounting -- the copies still
+              take up their natural space, which is the entire point, and
+              `aria-hidden` keeps the duplicated text out of the a11y tree. */}
+          <div className="grid max-w-full">
+            {items.map((item, index) => (
+              <div
+                key={getKey(item, index)}
+                aria-hidden
+                className="invisible col-start-1 row-start-1"
+              >
+                {renderOverlay(item, { index, isActive: false })}
+              </div>
+            ))}
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeIndex}
+                initial={{ opacity: 0, scale: 0.94, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: -6 }}
+                transition={{ duration: 0.28, ease: "easeOut" }}
+                // `h-full` so the panel fills the height the sizers establish
+                // rather than shrinking back to its own content.
+                className="col-start-1 row-start-1 h-full max-w-full"
+              >
+                {renderOverlay(items[activeIndex], { index: activeIndex, isActive: true })}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       )}
 
