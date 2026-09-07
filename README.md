@@ -13,6 +13,10 @@
 
 **[Live benchmark, replays & research write-up →](https://rl-minesweeper-lab.vercel.app/)**
 
+<img src="docs/media/race.gif" width="880" alt="Four agents take turns on one shared Minesweeper board: Random is eliminated on turn 5, DQN on turn 10, PPO on turn 11, and CSP clears the board on turn 14">
+
+<em>One shared board, four agents taking turns. Whatever gets revealed stays revealed;<br>a mistake only costs the agent that made it.</em>
+
 </div>
 
 Deduction, memorisation, value learning and policy gradient, benchmarked against each other on one
@@ -127,6 +131,11 @@ $$y = r + \gamma\, Q_{\theta^-}\!\left(s',\ \arg\max_{a' \in \mathcal{H}(s')} Q_
 
 Online network picks, target network scores, and the pick is confined to legal cells.
 
+<div align="center">
+<img src="docs/media/replay-dqn.gif" width="820" alt="The replay viewer stepping through a DQN episode: each move shows the selected cell and the Q-value the network assigned it, ending in a win in 20 steps">
+<br><em>Every episode is replayable move by move, with the agent's own reasoning beside it —<br>here DQN's selected action and its Q-value at each step.</em>
+</div>
+
 **Fully-convolutional Q-network.** The flatten-and-Linear head is 94% of the network at 5×5 and
 **99.4%** at 16×16. A 1×1 conv head replaces it — same depth, board-size invariant, and deduction
 rules become translation-equivariant, so *"a `1` with one hidden neighbour"* is learned once instead
@@ -178,6 +187,10 @@ flowchart LR
 The web layer **serves** results; it is not a source of truth. Every route reads `rl/results_public/`
 per request and returns exactly what the training scripts wrote. Replays never record mine positions,
 not even in metadata, so hidden state cannot leak into the UI by accident.
+
+<div align="center">
+<a href="https://rl-minesweeper-lab.vercel.app/"><img src="docs/media/hero.png" width="880" alt="RL Minesweeper Lab landing page: five agents, three board sizes, two mine densities, every episode recorded"></a>
+</div>
 
 **Engineering** — fixed evaluation protocol (2,000 greedy episodes, seed 42, identical boards across
 agents, Fisher exact p-values and 95% Wilson intervals) · matched DQN/PPO gradient budget (~123k–150k
